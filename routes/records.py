@@ -4,6 +4,7 @@ from database import db
 from models.chanting_record import ChantingRecord
 from models.chanting import Chanting
 from models.daily_stats import DailyStats
+from models.dedication import Dedication
 from models.user import User
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
@@ -73,6 +74,22 @@ def index():
         ).scalar()
         record_dict['total_count'] = total_count or 0
         
+        # 获取关联的回向文
+        dedications = Dedication.query.filter_by(
+            chanting_id=record.chanting_id,
+            user_id=record.user_id
+        ).all()
+        record_dict['dedications'] = [
+            {
+                'id': dedication.id,
+                'title': dedication.title,
+                'content': dedication.content,
+                'created_at': dedication.created_at.isoformat() if dedication.created_at else None,
+                'updated_at': dedication.updated_at.isoformat() if dedication.updated_at else None
+            }
+            for dedication in dedications
+        ]
+        
         enhanced_records.append(record_dict)
     
     # 替换原始的 records.items 为处理后的数据
@@ -126,6 +143,22 @@ def get_record(record_id):
     data['today_count'] = today_stat.count if today_stat else 0
     data['total_count'] = total_count or 0
     data['practice_days'] = practice_days or 0
+    
+    # 添加关联的回向文
+    dedications = Dedication.query.filter_by(
+        chanting_id=record.chanting_id,
+        user_id=record.user_id
+    ).all()
+    data['dedications'] = [
+        {
+            'id': dedication.id,
+            'title': dedication.title,
+            'content': dedication.content,
+            'created_at': dedication.created_at.isoformat() if dedication.created_at else None,
+            'updated_at': dedication.updated_at.isoformat() if dedication.updated_at else None
+        }
+        for dedication in dedications
+    ]
     
     return jsonify(data)
 
