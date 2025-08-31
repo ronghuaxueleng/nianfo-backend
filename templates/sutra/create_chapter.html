@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chanting.title }} - 添加章节{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book-open mr-2"></i>{{ chanting.title }}
+            <small class="text-muted"> - 添加章节</small>
+        </h1>
+        <a href="{{ url_for('sutra.chapters', chanting_id=chanting.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i>返回章节列表
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">添加新章节</h3>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <!-- 经文信息显示 -->
+                        <div class="alert alert-light border-left-info mb-4">
+                            <h6 class="mb-1">所属经文：{{ chanting.title }}</h6>
+                            <p class="mb-0 text-muted small">
+                                {% if chanting.user %}
+                                    创建者：{{ chanting.user.nickname or chanting.user.username }} | 
+                                {% endif %}
+                                {% if chanting.is_built_in %}
+                                    <span class="badge badge-info">内置经文</span>
+                                {% else %}
+                                    <span class="badge badge-primary">自定义经文</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="chapter_number">章节序号 <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="chapter_number" name="chapter_number" 
+                                           value="{{ next_chapter_number }}" min="1" required>
+                                    <small class="form-text text-muted">建议使用系统推荐的序号</small>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-group">
+                                    <label for="title">章节标题 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                           placeholder="请输入章节标题，如：第一章 观自在菩萨">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="content">章节内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="content" name="content" rows="10" required 
+                                      placeholder="请输入该章节的完整内容，每段一行"></textarea>
+                            <small class="form-text text-muted">请输入该章节的完整内容，每段或每句一行</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pronunciation">章节注音（可选）</label>
+                            <textarea class="form-control" id="pronunciation" name="pronunciation" rows="5" 
+                                      placeholder="请输入该章节内容的注音"></textarea>
+                            <small class="form-text text-muted">可选项，用于帮助读诵。每行注音对应章节内容的每行</small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>保存章节
+                        </button>
+                        <a href="{{ url_for('sutra.chapters', chanting_id=chanting.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i>取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 表单验证
+    $('form').on('submit', function(e) {
+        const chapterNumber = $('#chapter_number').val();
+        const title = $('#title').val().trim();
+        const content = $('#content').val().trim();
+        
+        if (!chapterNumber || !title || !content) {
+            e.preventDefault();
+            alert('请填写章节序号、标题和内容');
+            return false;
+        }
+        
+        if (chapterNumber < 1) {
+            e.preventDefault();
+            alert('章节序号必须大于0');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // 自动调整文本域高度
+    $('#content, #pronunciation').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+});
+</script>
+{% endblock %}

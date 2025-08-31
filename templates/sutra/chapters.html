@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chanting.title }} - 章节管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book-open mr-2"></i>{{ chanting.title }}
+            <small class="text-muted"> - 章节管理</small>
+        </h1>
+        <div class="btn-group">
+            <a href="{{ url_for('sutra.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>返回经文列表
+            </a>
+            <a href="{{ url_for('sutra.edit', chanting_id=chanting.id) }}" class="btn btn-info">
+                <i class="fas fa-edit mr-1"></i>编辑经文
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        章节管理 
+                        <span class="badge badge-info">共 {{ chapters.total }} 章</span>
+                    </h3>
+                    <div class="btn-group float-right">
+                        <a href="{{ url_for('sutra.create_chapter', chanting_id=chanting.id) }}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-1"></i>添加章节
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- 经文信息卡片 -->
+                    <div class="alert alert-light border-left-primary m-3 mb-0">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="mb-1">经文：{{ chanting.title }}</h6>
+                                <p class="mb-0 text-muted small">
+                                    {% if chanting.user %}
+                                        创建者：{{ chanting.user.nickname or chanting.user.username }} | 
+                                    {% endif %}
+                                    创建时间：{{ chanting.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                {% if chanting.is_built_in %}
+                                    <span class="badge badge-info">内置经文</span>
+                                {% else %}
+                                    <span class="badge badge-primary">自定义经文</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 左右分栏布局 -->
+                    <div class="row no-gutters">
+                        <!-- 左侧章节列表 -->
+                        <div class="col-md-5 border-right">
+                            <div class="p-3">
+                                <div class="chapter-list" style="max-height: 600px; overflow-y: auto;">
+                                    {% for chapter in chapters.items %}
+                                    <div class="chapter-item border-bottom py-2 cursor-pointer" data-chapter-id="{{ chapter.id }}" onclick="selectChapter({{ chapter.id }})">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="badge badge-secondary">第 {{ chapter.chapter_number }} 章</span>
+                                                <strong class="ml-2">{{ chapter.title }}</strong>
+                                                {% if chapter.pronunciation %}
+                                                <i class="fas fa-volume-up ml-2 text-info" title="包含注音"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('sutra.edit_chapter', chanting_id=chanting.id, chapter_id=chapter.id) }}" class="btn btn-warning btn-sm" title="编辑">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteChapter({{ chapter.id }})" title="删除">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="text-muted small mt-1">
+                                            {{ chapter.content[:80] }}{% if chapter.content|length > 80 %}...{% endif %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-list-alt fa-2x mb-2"></i><br>
+                                        暂无章节数据<br>
+                                        <a href="{{ url_for('sutra.create_chapter', chanting_id=chanting.id) }}" class="btn btn-primary btn-sm mt-2">
+                                            <i class="fas fa-plus mr-1"></i>添加首个章节
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- 分页 -->
+                                {% if chapters.pages > 1 %}
+                                <nav aria-label="分页导航" class="mt-3">
+                                    <ul class="pagination pagination-sm justify-content-center">
+                                        {% if chapters.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('sutra.chapters', chanting_id=chanting.id, page=chapters.prev_num) }}">上一页</a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% for page_num in chapters.iter_pages() %}
+                                            {% if page_num %}
+                                                {% if page_num != chapters.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('sutra.chapters', chanting_id=chanting.id, page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                                {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                                {% endif %}
+                                            {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">…</span>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if chapters.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('sutra.chapters', chanting_id=chanting.id, page=chapters.next_num) }}">下一页</a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 右侧章节详情 -->
+                        <div class="col-md-7">
+                            <div class="p-3">
+                                <div id="chapterDetail">
+                                    <div class="text-center text-muted py-5">
+                                        <i class="fas fa-hand-point-left fa-3x mb-3"></i>
+                                        <h5>选择左侧章节查看详情</h5>
+                                        <p class="text-muted">点击左侧列表中的任意章节来查看完整内容和注音</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 添加样式
+    $('<style>').appendTo('head').html(`
+        .chapter-item:hover {
+            background-color: #f8f9fa !important;
+            cursor: pointer;
+        }
+        .chapter-item.bg-light {
+            background-color: #e3f2fd !important;
+            border-left: 3px solid #2196F3 !important;
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+    `);
+});
+
+// 选择章节显示详情
+function selectChapter(chapterId) {
+    // 移除之前选中的状态
+    $('.chapter-item').removeClass('bg-light border-primary');
+    
+    // 添加当前选中状态
+    $(`.chapter-item[data-chapter-id="${chapterId}"]`).addClass('bg-light border-primary');
+    
+    // 显示加载状态
+    $('#chapterDetail').html(`
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <h5>正在加载章节详情...</h5>
+        </div>
+    `);
+    
+    // 通过API获取完整的章节数据
+    $.ajax({
+        url: `/sutra/{{ chanting.id }}/chapters/${chapterId}/detail`,
+        method: 'GET',
+        success: function(data) {
+            const chapterHtml = `
+                <div class="chapter-detail">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h4 class="mb-1">
+                                <span class="badge badge-primary">第 ${data.chapter_number} 章</span>
+                                ${data.title}
+                            </h4>
+                            <small class="text-muted">创建时间：${new Date(data.created_at).toLocaleString('zh-CN')}</small>
+                        </div>
+                        <div class="btn-group">
+                            <a href="/sutra/{{ chanting.id }}/chapters/${chapterId}/edit" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit mr-1"></i>编辑
+                            </a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteChapter(${chapterId})">
+                                <i class="fas fa-trash mr-1"></i>删除
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">章节内容：</label>
+                        <div class="border rounded p-3 bg-white" style="white-space: pre-wrap; font-size: 15px; line-height: 1.6; max-height: 300px; overflow-y: auto;">
+                            ${data.content || '<span class="text-muted">暂无内容</span>'}
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            章节注音：
+                            ${data.pronunciation ? '<i class="fas fa-volume-up ml-1 text-info"></i>' : ''}
+                        </label>
+                        <div class="border rounded p-3 bg-light" style="white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto;">
+                            ${data.pronunciation ? 
+                                `<span class="text-info">${data.pronunciation}</span>` : 
+                                '<span class="text-muted">暂无注音</span>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('#chapterDetail').html(chapterHtml);
+        },
+        error: function(xhr) {
+            $('#chapterDetail').html(`
+                <div class="text-center text-danger py-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>加载章节详情失败</h5>
+                    <p class="text-muted">请稍后重试或检查网络连接</p>
+                </div>
+            `);
+        }
+    });
+}
+
+// 删除章节
+function deleteChapter(chapterId) {
+    if (!confirm('确定要删除这个章节吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/sutra/{{ chanting.id }}/chapters/${chapterId}/delete`,
+        method: 'POST',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+</script>
+{% endblock %}

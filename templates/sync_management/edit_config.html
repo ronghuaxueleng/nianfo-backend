@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}编辑同步配置 - {{ config.config_key }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>⚙️ 编辑同步配置</h2>
+                <a href="{{ url_for('sync_management.sync_configs') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回列表
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <code>{{ config.config_key }}</code>
+                        <span class="badge bg-{% if config.is_active %}success{% else %}secondary{% endif %} ms-2">
+                            {% if config.is_active %}启用{% else %}禁用{% endif %}
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if config.description %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> {{ config.description }}
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="config_value" class="form-label">
+                                <strong>配置值</strong>
+                                <small class="text-muted">(支持JSON格式)</small>
+                            </label>
+                            <textarea class="form-control font-monospace" id="config_value" name="config_value" 
+                                      rows="10" required>{{ formatted_value }}</textarea>
+                            <div class="form-text">
+                                支持JSON格式的对象和数组，或者简单的字符串、数字、布尔值
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">配置描述</label>
+                            <input type="text" class="form-control" id="description" name="description" 
+                                   value="{{ config.description or '' }}" placeholder="配置的用途和说明">
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                       value="1" {% if config.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    启用此配置
+                                </label>
+                            </div>
+                            <div class="form-text text-muted">
+                                禁用的配置不会生效，但会保留配置值
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-save"></i> 保存配置
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-info w-100" onclick="formatJSON()">
+                                    <i class="fas fa-code"></i> 格式化JSON
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 配置示例和说明 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">📚 配置示例和说明</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <h6>app_data_overwrite_policy 示例:</h6>
+                            <pre class="bg-light p-3 rounded"><code>{
+  "users": true,
+  "chantings": false,
+  "dedication_templates": false,
+  "chanting_records": true,
+  "daily_stats": true,
+  "dedications": true
+}</code></pre>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6>sync_rate_limit 示例:</h6>
+                            <pre class="bg-light p-3 rounded"><code>{
+  "max_requests_per_hour": 60,
+  "max_requests_per_day": 500
+}</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-lg-6">
+                            <h6>built_in_content_protection 示例:</h6>
+                            <pre class="bg-light p-3 rounded"><code>{
+  "strict_mode": true,
+  "protected_fields": [
+    "title", "content", "pronunciation", 
+    "type", "is_built_in"
+  ],
+  "admin_only_operations": [
+    "create_built_in", 
+    "update_built_in", 
+    "delete_built_in"
+  ],
+  "allow_user_content_only": true
+}</code></pre>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6>sync_allowed_data_types 示例:</h6>
+                            <pre class="bg-light p-3 rounded"><code>[
+  "users",
+  "chantings", 
+  "dedication_templates",
+  "chanting_records",
+  "daily_stats",
+  "dedications"
+]</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> 重要提示</h6>
+                        <ul class="mb-0">
+                            <li><strong>谨慎修改：</strong> 配置更改会立即生效，可能影响app的同步功能</li>
+                            <li><strong>JSON格式：</strong> 对象和数组必须是有效的JSON格式</li>
+                            <li><strong>备份建议：</strong> 修改前建议记录原始配置值</li>
+                            <li><strong>测试验证：</strong> 修改后建议进行同步测试</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置历史信息 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">🕐 配置信息</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>配置ID:</strong> {{ config.id }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>创建时间:</strong><br>
+                            <small>{{ config.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>最后更新:</strong><br>
+                            <small>{{ config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatJSON() {
+    const textarea = document.getElementById('config_value');
+    const value = textarea.value.trim();
+    
+    try {
+        // 尝试解析并格式化JSON
+        const parsed = JSON.parse(value);
+        const formatted = JSON.stringify(parsed, null, 2);
+        textarea.value = formatted;
+        
+        // 提示成功
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">JSON格式化成功</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        // 使用Bootstrap 4兼容的Toast显示（简化版本）
+        $(toast).addClass('show');
+        
+        // 自动清理
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 3000);
+        
+    } catch (e) {
+        // 不是JSON格式，提示用户
+        alert('当前内容不是有效的JSON格式，无法格式化。\\n错误信息: ' + e.message);
+    }
+}
+
+// 表单提交前验证
+document.querySelector('form').addEventListener('submit', function(e) {
+    const textarea = document.getElementById('config_value');
+    const value = textarea.value.trim();
+    
+    // 如果看起来像JSON，验证格式
+    if (value.startsWith('{') || value.startsWith('[')) {
+        try {
+            JSON.parse(value);
+        } catch (e) {
+            if (!confirm('配置值看起来像JSON格式，但格式无效。确定要保存吗？\\n错误信息: ' + e.message)) {
+                e.preventDefault();
+                return false;
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.font-monospace {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+}
+
+pre code {
+    font-size: 12px;
+}
+
+.toast {
+    min-width: 300px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}编辑佛号{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-prayer-hands mr-2"></i>编辑佛号
+        </h1>
+        <a href="{{ url_for('buddha_nam.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i>返回列表
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        编辑佛号信息
+                        {% if chanting.is_built_in %}
+                            <span class="badge badge-info ml-2">内置</span>
+                        {% else %}
+                            <span class="badge badge-primary ml-2">自定义</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">佛号名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   value="{{ chanting.title }}" placeholder="请输入佛号名称">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="content">佛号内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="content" name="content" rows="4" required 
+                                      placeholder="请输入完整的佛号内容">{{ chanting.content }}</textarea>
+                            <small class="form-text text-muted">请输入完整的佛号内容，可以多行输入</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pronunciation">注音（可选）</label>
+                            <textarea class="form-control" id="pronunciation" name="pronunciation" rows="3" 
+                                      placeholder="请输入佛号的注音">{{ chanting.pronunciation or '' }}</textarea>
+                            <small class="form-text text-muted">可选项，用于帮助念诵，可以是拼音或其他注音方式</small>
+                        </div>
+                        
+                        <!-- 显示创建信息 -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>创建者</label>
+                                    <div class="form-control-plaintext">
+                                        {% if chanting.user %}
+                                            <span class="badge badge-secondary">{{ chanting.user.nickname or chanting.user.username }}</span>
+                                        {% else %}
+                                            <span class="text-muted">系统</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>创建时间</label>
+                                    <div class="form-control-plaintext text-muted">
+                                        {{ chanting.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if chanting.updated_at %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>最后更新</label>
+                                    <div class="form-control-plaintext text-muted">
+                                        {{ chanting.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>保存更改
+                        </button>
+                        <a href="{{ url_for('buddha_nam.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i>取消
+                        </a>
+                        <button type="button" class="btn btn-danger float-right" onclick="deleteBuddhaNam({{ chanting.id }})">
+                            <i class="fas fa-trash mr-1"></i>删除佛号
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 表单验证
+    $('form').on('submit', function(e) {
+        const title = $('#title').val().trim();
+        const content = $('#content').val().trim();
+        
+        if (!title || !content) {
+            e.preventDefault();
+            alert('请填写佛号名称和内容');
+            return false;
+        }
+        
+        return true;
+    });
+});
+
+// 删除佛号
+function deleteBuddhaNam(id) {
+    if (!confirm('确定要删除这个佛号吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/buddha-nam/${id}/api-delete`,
+        method: 'POST',
+        success: function(response) {
+            alert('删除成功');
+            window.location.href = '{{ url_for("buddha_nam.index") }}';
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+</script>
+{% endblock %}

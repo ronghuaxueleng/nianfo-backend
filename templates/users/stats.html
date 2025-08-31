@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}用户统计{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面导航 -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('users.index') }}">用户管理</a></li>
+            <li class="breadcrumb-item active">统计报表</li>
+        </ol>
+    </nav>
+
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 text-primary">
+            <i class="fas fa-chart-bar me-2"></i>用户统计报表
+        </h2>
+        <div class="btn-group">
+            <a href="{{ url_for('users.index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>返回列表
+            </a>
+            <a href="{{ url_for('users.export') }}" class="btn btn-success">
+                <i class="fas fa-download me-1"></i>导出数据
+            </a>
+        </div>
+    </div>
+
+    <!-- 统计概览 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="card-title">{{ total_users }}</h2>
+                            <p class="card-text">总用户数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-3x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="card-title">{{ monthly_new }}</h2>
+                            <p class="card-text">本月新增</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-plus fa-3x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="card-title">{{ daily_new }}</h2>
+                            <p class="card-text">今日新增</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-plus fa-3x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="card-title">{{ (monthly_new / total_users * 100) | round(1) if total_users > 0 else 0 }}%</h2>
+                            <p class="card-text">月增长率</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-3x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 注册趋势图 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>用户注册趋势（最近7天）
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="registrationChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 头像类型分布 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-image me-2"></i>头像类型分布
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if avatar_types %}
+                    <canvas id="avatarChart" height="200"></canvas>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-pie fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">暂无数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详细统计表格 -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>注册趋势详情
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>新增用户</th>
+                                    <th>占比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trend in trends %}
+                                <tr>
+                                    <td>{{ trend.date }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ trend.count }}</span>
+                                    </td>
+                                    <td>
+                                        {% if total_users > 0 %}
+                                            {{ (trend.count / total_users * 100) | round(1) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>头像类型详情
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if avatar_types %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>类型</th>
+                                    <th>用户数</th>
+                                    <th>占比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for avatar_type, count in avatar_types %}
+                                <tr>
+                                    <td>
+                                        {% if avatar_type == 'emoji' %}
+                                            😊 表情头像
+                                        {% elif avatar_type == 'image' %}
+                                            🖼️ 图片头像
+                                        {% elif avatar_type == 'default' %}
+                                            👤 默认头像
+                                        {% else %}
+                                            ❓ {{ avatar_type or '未知' }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ count }}</span>
+                                    </td>
+                                    <td>
+                                        {% if total_users > 0 %}
+                                            {{ (count / total_users * 100) | round(1) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-image fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">暂无头像数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>系统信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="border-end pe-3">
+                                <h6 class="text-muted">数据统计时间</h6>
+                                <p class="mb-0">{{ now.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end pe-3">
+                                <h6 class="text-muted">平均日增长</h6>
+                                <p class="mb-0">{{ (trends | sum(attribute='count') / 7) | round(1) }} 人/天</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end pe-3">
+                                <h6 class="text-muted">预计月增长</h6>
+                                <p class="mb-0">{{ ((trends | sum(attribute='count') / 7) * 30) | round(0) }} 人/月</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div>
+                                <h6 class="text-muted">活跃度指标</h6>
+                                <p class="mb-0">
+                                    {% if total_users > 0 %}
+                                        {{ (daily_new / total_users * 100) | round(2) }}% 日活跃
+                                    {% else %}
+                                        暂无数据
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 注册趋势图
+const registrationCtx = document.getElementById('registrationChart').getContext('2d');
+new Chart(registrationCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for trend in trends %}'{{ trend.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: '新增用户',
+            data: [{% for trend in trends %}{{ trend.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '用户注册趋势'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+{% if avatar_types %}
+// 头像类型分布饼图
+const avatarCtx = document.getElementById('avatarChart').getContext('2d');
+new Chart(avatarCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for avatar_type, count in avatar_types %}
+                '{% if avatar_type == "emoji" %}表情头像{% elif avatar_type == "image" %}图片头像{% elif avatar_type == "default" %}默认头像{% else %}{{ avatar_type or "未知" }}{% endif %}'{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            data: [{% for avatar_type, count in avatar_types %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '头像类型分布'
+            },
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

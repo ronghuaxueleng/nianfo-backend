@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}个人中心{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 text-primary">
+            <i class="fas fa-user-circle me-2"></i>个人中心
+        </h2>
+    </div>
+
+    <div class="row">
+        <!-- 个人信息卡片 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>基本信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">用户名:</dt>
+                                <dd class="col-sm-8">
+                                    <strong>{{ user.username }}</strong>
+                                </dd>
+                                
+                                <dt class="col-sm-4">邮箱:</dt>
+                                <dd class="col-sm-8">
+                                    <i class="fas fa-envelope me-1"></i>{{ user.email }}
+                                </dd>
+                                
+                                <dt class="col-sm-4">状态:</dt>
+                                <dd class="col-sm-8">
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>激活
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times me-1"></i>未激活
+                                        </span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">创建时间:</dt>
+                                <dd class="col-sm-8">
+                                    <i class="fas fa-calendar-plus me-1"></i>
+                                    {% if user.created_at %}
+                                        {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        未知
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">最后登录:</dt>
+                                <dd class="col-sm-8">
+                                    <i class="fas fa-sign-in-alt me-1"></i>
+                                    {% if user.last_login %}
+                                        {{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        从未登录
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">用户ID:</dt>
+                                <dd class="col-sm-8">
+                                    <code>#{{ user.id }}</code>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快捷操作卡片 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>快捷操作
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>编辑个人资料
+                        </a>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success">
+                            <i class="fas fa-tachometer-alt me-2"></i>返回仪表板
+                        </a>
+                        <a href="{{ url_for('users.index') }}" class="btn btn-outline-info">
+                            <i class="fas fa-users me-2"></i>用户管理
+                        </a>
+                        <hr>
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>系统信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">当前时间</h6>
+                                <p class="mb-0">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <span id="currentTime">--:--:--</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">在线时长</h6>
+                                <p class="mb-0">
+                                    <i class="fas fa-stopwatch me-1"></i>
+                                    <span id="onlineTime">--:--:--</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">浏览器</h6>
+                                <p class="mb-0">
+                                    <i class="fas fa-globe me-1"></i>
+                                    <span id="browserInfo">--</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">系统角色</h6>
+                                <p class="mb-0">
+                                    <i class="fas fa-user-shield me-1"></i>
+                                    <span class="badge bg-primary">系统管理员</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 实时更新时间
+function updateTime() {
+    const now = new Date();
+    const timeString = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0') + ' ' + 
+                      String(now.getHours()).padStart(2, '0') + ':' + 
+                      String(now.getMinutes()).padStart(2, '0') + ':' + 
+                      String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('currentTime').textContent = timeString;
+}
+
+// 计算在线时长
+function updateOnlineTime() {
+    const loginTime = new Date('{{ user.last_login.isoformat() if user.last_login else "" }}');
+    if (!isNaN(loginTime.getTime())) {
+        const now = new Date();
+        const diff = now - loginTime;
+        
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const timeString = String(hours).padStart(2, '0') + ':' + 
+                          String(minutes).padStart(2, '0') + ':' + 
+                          String(seconds).padStart(2, '0');
+        document.getElementById('onlineTime').textContent = timeString;
+    } else {
+        document.getElementById('onlineTime').textContent = '--:--:--';
+    }
+}
+
+// 获取浏览器信息
+function getBrowserInfo() {
+    const userAgent = navigator.userAgent;
+    let browser = '未知';
+    
+    if (userAgent.indexOf('Chrome') > -1) {
+        browser = 'Chrome';
+    } else if (userAgent.indexOf('Firefox') > -1) {
+        browser = 'Firefox';
+    } else if (userAgent.indexOf('Safari') > -1) {
+        browser = 'Safari';
+    } else if (userAgent.indexOf('Edge') > -1) {
+        browser = 'Edge';
+    }
+    
+    document.getElementById('browserInfo').textContent = browser;
+}
+
+// 页面加载完成后启动定时器
+document.addEventListener('DOMContentLoaded', function() {
+    updateTime();
+    updateOnlineTime();
+    getBrowserInfo();
+    
+    // 每秒更新时间和在线时长
+    setInterval(function() {
+        updateTime();
+        updateOnlineTime();
+    }, 1000);
+});
+</script>
+{% endblock %}

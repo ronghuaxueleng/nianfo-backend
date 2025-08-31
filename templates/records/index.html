@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+
+{% block title %}修行记录管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-journal-whills mr-2"></i>修行记录管理
+        </h1>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">修行记录列表</h3>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选选项 -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-control" id="chantingFilter">
+                                <option value="">全部佛号经文</option>
+                                {% for chanting in available_chantings %}
+                                <option value="{{ chanting.id }}" {% if selected_chanting_id == chanting.id %}selected{% endif %}>{{ chanting.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" id="userFilter">
+                                <option value="">全部用户</option>
+                                {% for user in available_users %}
+                                <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                                    {{ user.nickname or user.username }}
+                                    {% if user.nickname and user.nickname != user.username %}({{ user.username }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                </div>
+                                <input type="date" class="form-control" id="dateFilter" 
+                                       value="{{ selected_date or '' }}" 
+                                       onchange="filterRecords()" 
+                                       placeholder="选择日期">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary btn-block" onclick="resetFilters()">
+                                <i class="fas fa-redo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="15%">用户</th>
+                                    <th width="20%">佛号经文</th>
+                                    <th width="8%">类型</th>
+                                    <th width="12%">今日念诵次数</th>
+                                    <th width="12%">总念诵次数</th>
+                                    <th width="13%">最后修行时间</th>
+                                    <th width="15%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    <td>{{ record.id }}</td>
+                                    <td>
+                                        {% if record.user %}
+                                            <div class="d-flex align-items-center">
+                                                {% if record.user.avatar_type == 'emoji' and record.user.avatar %}
+                                                    <span class="mr-2" style="font-size: 1.2em;">{{ record.user.avatar }}</span>
+                                                {% else %}
+                                                    <i class="fas fa-user-circle text-secondary mr-2"></i>
+                                                {% endif %}
+                                                <div>
+                                                    <strong>{{ record.user.nickname or record.user.username }}</strong>
+                                                    {% if record.user.nickname and record.user.nickname != record.user.username %}
+                                                        <br><small class="text-muted">@{{ record.user.username }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                <i class="fas fa-user-slash mr-1"></i>未知用户
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ record.chanting.title }}</strong>
+                                        {% if record.chanting.is_built_in %}
+                                        <span class="badge badge-info ml-1">内置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.chanting.type == 'buddha' %}
+                                        <span class="badge badge-warning">佛号</span>
+                                        {% else %}
+                                        <span class="badge badge-success">经文</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ record.today_count or 0 }}</span>
+                                        <button class="btn btn-sm btn-outline-primary ml-1" onclick="updateTodayCount({{ record.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">{{ record.total_count or 0 }}</span>
+                                    </td>
+                                    <td class="small text-muted">
+                                        {{ record.updated_at[:19].replace('T', ' ') if record.updated_at else '-' }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-info btn-sm" onclick="viewRecord({{ record.id }})" title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-success btn-sm" onclick="showStatsModal({{ record.id }})" title="统计信息">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteRecord({{ record.id }})" title="删除记录">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加记录模态框 -->
+<div class="modal fade" id="addRecordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加修行记录</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addRecordForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="recordChantingId">选择佛号经文</label>
+                        <select class="form-control" id="recordChantingId" name="chanting_id" required>
+                            <option value="">请选择...</option>
+                            {% for chanting in available_chantings %}
+                            <option value="{{ chanting.id }}">{{ chanting.title }} ({{ '佛号' if chanting.type == 'buddha' else '经文' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="initialCount">初始念诵次数（可选）</label>
+                        <input type="number" class="form-control" id="initialCount" name="initial_count" value="0" min="0">
+                        <small class="text-muted">设置今日的初始念诵次数</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 更新念诵次数模态框 -->
+<div class="modal fade" id="updateCountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更新今日念诵次数</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="updateCountForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newCount">今日念诵次数</label>
+                        <input type="number" class="form-control" id="newCount" name="count" min="0" required>
+                    </div>
+                    <input type="hidden" id="updateRecordId" name="record_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">更新</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewRecordTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>类型：</strong>
+                        <span id="viewRecordType"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>来源：</strong>
+                        <span id="viewRecordSource"></span>
+                    </div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label><strong>内容：</strong></label>
+                    <div id="viewRecordContent" class="border p-3" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="form-group">
+                    <label><strong>注音：</strong></label>
+                    <div id="viewRecordPronunciation" class="border p-3 text-muted" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">今日念诵</h5>
+                                <h3 class="text-primary" id="viewTodayCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">总计念诵</h5>
+                                <h3 class="text-success" id="viewTotalCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">修行天数</h5>
+                                <h3 class="text-info" id="viewPracticeDays">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计信息模态框 -->
+<div class="modal fade" id="statsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    <span id="statsModalTitle">统计信息</span>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- 基本统计卡片 -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="statsTodayCount">0</h4>
+                                        <small>今日念诵</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="statsTotalCount">0</h4>
+                                        <small>总计念诵</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="statsConsecutiveDays">0</h4>
+                                        <small>连续天数</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="statsTotalDays">0</h4>
+                                        <small>修行天数</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 图表区域 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">最近7天念诵趋势</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="statsChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <!-- 详细统计信息 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">详细统计</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-calendar-week text-muted mr-2"></i>最近7天</td>
+                                            <td class="text-right"><span id="statsWeekTotal" class="badge badge-primary">0</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-calendar-alt text-muted mr-2"></i>最近30天</td>
+                                            <td class="text-right"><span id="statsMonthTotal" class="badge badge-success">0</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-trophy text-muted mr-2"></i>最高单日</td>
+                                            <td class="text-right"><span id="statsMaxDaily" class="badge badge-warning">0</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-calendar-day text-muted mr-2"></i>最高单日日期</td>
+                                            <td class="text-right small text-muted" id="statsMaxDailyDate">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-fire text-muted mr-2"></i>最长连续</td>
+                                            <td class="text-right"><span id="statsMaxConsecutive" class="badge badge-danger">0</span> 天</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-chart-line text-muted mr-2"></i>平均每日</td>
+                                            <td class="text-right"><span id="statsAvgDaily" class="badge badge-info">0</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 用户信息（如果有） -->
+                        <div class="card mt-3" id="statsUserCard" style="display: none;">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">修行者信息</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div id="statsUserAvatar" class="mr-3"></div>
+                                    <div>
+                                        <strong id="statsUserName">-</strong>
+                                        <br><small class="text-muted" id="statsUserUsername">-</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 添加记录
+$('#addRecordForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        chanting_id: parseInt($('#recordChantingId').val()),
+        initial_count: parseInt($('#initialCount').val()) || 0
+    };
+    
+    $.ajax({
+        url: '/api/records',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            $('#addRecordModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('添加失败：' + xhr.responseJSON.message);
+        }
+    });
+});
+
+// 更新今日念诵次数
+function updateTodayCount(recordId) {
+    $('#updateRecordId').val(recordId);
+    
+    // 获取当前次数
+    $.ajax({
+        url: `/records/${recordId}`,
+        method: 'GET',
+        success: function(data) {
+            $('#newCount').val(data.today_count || 0);
+            $('#updateCountModal').modal('show');
+        }
+    });
+}
+
+$('#updateCountForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const recordId = $('#updateRecordId').val();
+    const count = parseInt($('#newCount').val());
+    
+    $.ajax({
+        url: `/api/records/${recordId}/count`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({count: count}),
+        success: function(response) {
+            $('#updateCountModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('更新失败：' + xhr.responseJSON.message);
+        }
+    });
+});
+
+// 查看详情
+function viewRecord(id) {
+    $.ajax({
+        url: `/records/${id}`,
+        method: 'GET',
+        success: function(data) {
+            $('#viewRecordTitle').text(data.chanting.title);
+            $('#viewRecordType').html(data.chanting.type === 'buddha' ? '<span class="badge badge-warning">佛号</span>' : '<span class="badge badge-success">经文</span>');
+            $('#viewRecordSource').html(data.chanting.is_built_in ? '<span class="text-info">内置</span>' : '<span class="text-primary">自定义</span>');
+            $('#viewRecordContent').text(data.chanting.content);
+            $('#viewRecordPronunciation').text(data.chanting.pronunciation || '无注音');
+            $('#viewTodayCount').text(data.today_count || 0);
+            $('#viewTotalCount').text(data.total_count || 0);
+            $('#viewPracticeDays').text(data.practice_days || 0);
+            $('#viewRecordModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取详情失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 显示统计信息
+let statsChart = null;
+
+function showStatsModal(recordId) {
+    $.ajax({
+        url: `/records/${recordId}/stats`,
+        method: 'GET',
+        success: function(data) {
+            // 更新模态框标题
+            $('#statsModalTitle').text(data.chanting.title + ' - 统计信息');
+            
+            // 更新基本统计
+            $('#statsTodayCount').text(data.stats.today_count);
+            $('#statsTotalCount').text(data.stats.total_count);
+            $('#statsConsecutiveDays').text(data.stats.consecutive_days);
+            $('#statsTotalDays').text(data.stats.total_days);
+            
+            // 更新详细统计
+            $('#statsWeekTotal').text(data.stats.week_total);
+            $('#statsMonthTotal').text(data.stats.month_total);
+            $('#statsMaxDaily').text(data.stats.max_daily);
+            $('#statsMaxDailyDate').text(data.stats.max_daily_date || '-');
+            $('#statsMaxConsecutive').text(data.stats.max_consecutive);
+            $('#statsAvgDaily').text(data.stats.avg_daily);
+            
+            // 显示用户信息（如果有）
+            if (data.user) {
+                $('#statsUserName').text(data.user.nickname || data.user.username);
+                $('#statsUserUsername').text('@' + data.user.username);
+                
+                // 设置用户头像
+                if (data.user.avatar_type === 'emoji' && data.user.avatar) {
+                    $('#statsUserAvatar').html('<span style="font-size: 2em;">' + data.user.avatar + '</span>');
+                } else {
+                    $('#statsUserAvatar').html('<i class="fas fa-user-circle text-secondary" style="font-size: 2em;"></i>');
+                }
+                
+                $('#statsUserCard').show();
+            } else {
+                $('#statsUserCard').hide();
+            }
+            
+            // 更新图表
+            updateStatsChart(data.stats.chart_data);
+            
+            // 显示模态框
+            $('#statsModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取统计信息失败：' + (xhr.responseJSON?.error || '未知错误'));
+        }
+    });
+}
+
+function updateStatsChart(chartData) {
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    
+    // 销毁现有图表
+    if (statsChart) {
+        statsChart.destroy();
+    }
+    
+    // 创建新图表
+    statsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.map(item => item.date_short),
+            datasets: [{
+                label: '念诵次数',
+                data: chartData.map(item => item.count),
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            elements: {
+                bar: {
+                    borderRadius: 4
+                }
+            }
+        }
+    });
+}
+
+// 删除记录
+function deleteRecord(id) {
+    if (!confirm('确定要删除这个修行记录吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/api/records/${id}`,
+        method: 'DELETE',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 筛选记录
+function filterRecords() {
+    const chantingId = $('#chantingFilter').val();
+    const userId = $('#userFilter').val();
+    const date = $('#dateFilter').val();
+    
+    let url = '{{ url_for("records.index") }}?';
+    const params = [];
+    
+    if (chantingId) params.push(`chanting_id=${chantingId}`);
+    if (userId) params.push(`user_id=${userId}`);
+    if (date) params.push(`date=${date}`);
+    
+    window.location.href = url + params.join('&');
+}
+
+// 重置筛选
+function resetFilters() {
+    $('#chantingFilter').val('');
+    $('#userFilter').val('');
+    $('#dateFilter').val('');
+    window.location.href = '{{ url_for("records.index") }}';
+}
+
+// 筛选器改变时自动筛选
+$('#chantingFilter').on('change', function() {
+    filterRecords();
+});
+
+$('#userFilter').on('change', function() {
+    filterRecords();
+});
+</script>
+{% endblock %}

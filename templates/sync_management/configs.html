@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}同步配置管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>⚙️ 同步配置管理</h2>
+                <div>
+                    <button type="button" class="btn btn-info" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> 刷新配置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 配置说明 -->
+            <div class="alert alert-info mb-4">
+                <h6><i class="fas fa-info-circle"></i> 配置说明</h6>
+                <p class="mb-0">通过下方开关来控制同步系统的各项功能。<strong>红色警告项目</strong>需要谨慎操作，可能影响数据安全。</p>
+            </div>
+
+            <!-- 同步基础设置 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> 基础同步设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">启用同步功能</h6>
+                                    <p class="text-muted mb-0 small">控制整个同步系统的开关</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sync_enabled" 
+                                           data-config="sync_enabled" {% if get_config_value('sync_enabled', 'true') in ['true', 'True', True] %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">首次同步自动创建用户</h6>
+                                    <p class="text-muted mb-0 small">新设备首次同步时自动创建用户账号</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="first_sync_auto_create_user" 
+                                           data-config="first_sync_auto_create_user" {% if get_config_value('first_sync_auto_create_user', 'true') in ['true', 'True', True] %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据同步控制 -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-database"></i> 数据同步控制</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">用户数据同步</h6>
+                                    <p class="text-muted mb-0 small">同步用户基本信息和设置</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sync_users" 
+                                           data-config="sync_users" {% if 'users' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">修行记录同步</h6>
+                                    <p class="text-muted mb-0 small">同步用户的修行记录数据</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sync_chanting_records" 
+                                           data-config="sync_chanting_records" {% if 'chanting_records' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">每日统计同步</h6>
+                                    <p class="text-muted mb-0 small">同步用户的每日统计数据</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sync_daily_stats" 
+                                           data-config="sync_daily_stats" {% if 'daily_stats' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">回向文本同步</h6>
+                                    <p class="text-muted mb-0 small">同步用户自定义的回向文本</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sync_dedications" 
+                                           data-config="sync_dedications" {% if 'dedications' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 危险设置 -->
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> 危险设置（谨慎操作）</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>⚠️ 警告：</strong>以下设置可能会影响内置数据的安全性，开启前请确保理解其影响。
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border border-danger rounded">
+                                <div>
+                                    <h6 class="mb-1 text-danger">佛号经文同步</h6>
+                                    <p class="text-muted mb-0 small">⚠️ 可能覆盖内置数据，不建议开启</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input switch-danger" type="checkbox" id="sync_chantings" 
+                                           data-config="sync_chantings" {% if 'chantings' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border border-danger rounded">
+                                <div>
+                                    <h6 class="mb-1 text-danger">回向模板同步</h6>
+                                    <p class="text-muted mb-0 small">⚠️ 可能覆盖内置模板，不建议开启</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input switch-danger" type="checkbox" id="sync_dedication_templates" 
+                                           data-config="sync_dedication_templates" {% if 'dedication_templates' in get_config_value('sync_allowed_data_types', '[]') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- App数据覆盖策略 -->
+                    <div class="mt-4">
+                        <h6 class="text-danger"><i class="fas fa-shield-alt"></i> App数据覆盖策略</h6>
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <div class="d-flex justify-content-between align-items-center p-3 border border-warning rounded">
+                                    <div>
+                                        <h6 class="mb-1">允许覆盖用户数据</h6>
+                                        <p class="text-muted mb-0 small">App端数据可以覆盖服务器用户数据</p>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input switch-warning" type="checkbox" id="overwrite_users" 
+                                               data-config="overwrite_users" {% if get_config_policy('app_data_overwrite_policy', 'users') %}checked{% endif %}>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-6 mb-3">
+                                <div class="d-flex justify-content-between align-items-center p-3 border border-warning rounded">
+                                    <div>
+                                        <h6 class="mb-1 text-danger">允许覆盖佛号经文</h6>
+                                        <p class="text-muted mb-0 small">⚠️ 极度危险：可能破坏内置佛号经文</p>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input switch-danger" type="checkbox" id="overwrite_chantings" 
+                                               data-config="overwrite_chantings" {% if get_config_policy('app_data_overwrite_policy', 'chantings') %}checked{% endif %}>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统保护设置 -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> 系统保护设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">内置内容严格保护</h6>
+                                    <p class="text-muted mb-0 small">启用对内置佛号经文的严格保护</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="strict_protection" 
+                                           data-config="strict_protection" {% if get_config_protection('built_in_content_protection', 'strict_mode') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">仅允许用户内容</h6>
+                                    <p class="text-muted mb-0 small">只允许同步用户创建的内容，禁止内置内容</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="user_content_only" 
+                                           data-config="user_content_only" {% if get_config_protection('built_in_content_protection', 'allow_user_content_only') %}checked{% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 频率限制设置 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt"></i> 频率限制设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h6 class="mb-2">每小时最大请求数</h6>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="max_requests_per_hour" 
+                                           data-config="max_requests_per_hour" value="{{ get_config_rate_limit('sync_rate_limit', 'max_requests_per_hour') or 100 }}" min="1" max="1000">
+                                    <span class="input-group-text">次/小时</span>
+                                </div>
+                                <small class="text-muted">建议设置100-500之间</small>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h6 class="mb-2">每日最大请求数</h6>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="max_requests_per_day" 
+                                           data-config="max_requests_per_day" value="{{ get_config_rate_limit('sync_rate_limit', 'max_requests_per_day') or 1000 }}" min="1" max="10000">
+                                    <span class="input-group-text">次/日</span>
+                                </div>
+                                <small class="text-muted">建议设置1000-5000之间</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="text-center mb-4">
+                <button type="button" class="btn btn-success btn-lg" onclick="saveAllConfigs()">
+                    <i class="fas fa-save"></i> 保存所有配置
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg ml-2" onclick="resetToDefaults()">
+                    <i class="fas fa-undo"></i> 恢复默认设置
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.switch-danger:checked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.switch-warning:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+.form-switch .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.card-header h5 {
+    font-weight: 600;
+}
+
+.border-danger {
+    border-color: #dc3545 !important;
+}
+
+.border-warning {
+    border-color: #ffc107 !important;
+}
+</style>
+
+<script>
+// 保存单个配置
+function saveConfig(configKey, value) {
+    fetch('/sync-management/api/config/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            config_key: configKey,
+            config_value: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('配置已保存', 'success');
+        } else {
+            showMessage('保存失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('保存失败: ' + error.message, 'danger');
+    });
+}
+
+// 保存所有配置
+function saveAllConfigs() {
+    const configs = {};
+    
+    // 收集所有开关和输入框的值
+    document.querySelectorAll('[data-config]').forEach(element => {
+        const configKey = element.dataset.config;
+        let value;
+        
+        if (element.type === 'checkbox') {
+            value = element.checked.toString();
+        } else if (element.type === 'number') {
+            value = element.value;
+        } else {
+            value = element.value;
+        }
+        
+        configs[configKey] = value;
+    });
+    
+    // 特殊处理：组合配置
+    const allowedDataTypes = [];
+    if (document.getElementById('sync_users').checked) allowedDataTypes.push('users');
+    if (document.getElementById('sync_chanting_records').checked) allowedDataTypes.push('chanting_records');
+    if (document.getElementById('sync_daily_stats').checked) allowedDataTypes.push('daily_stats');
+    if (document.getElementById('sync_dedications').checked) allowedDataTypes.push('dedications');
+    if (document.getElementById('sync_chantings').checked) allowedDataTypes.push('chantings');
+    if (document.getElementById('sync_dedication_templates').checked) allowedDataTypes.push('dedication_templates');
+    
+    configs['sync_allowed_data_types'] = JSON.stringify(allowedDataTypes);
+    
+    // App数据覆盖策略
+    const overwritePolicy = {
+        users: document.getElementById('overwrite_users').checked,
+        chanting_records: true, // 总是允许用户数据覆盖
+        daily_stats: true,
+        dedications: true,
+        chantings: document.getElementById('overwrite_chantings').checked,
+        dedication_templates: false // 模板数据谨慎处理
+    };
+    configs['app_data_overwrite_policy'] = JSON.stringify(overwritePolicy);
+    
+    // 内置内容保护
+    const protectionPolicy = {
+        strict_mode: document.getElementById('strict_protection').checked,
+        allow_user_content_only: document.getElementById('user_content_only').checked
+    };
+    configs['built_in_content_protection'] = JSON.stringify(protectionPolicy);
+    
+    // 频率限制
+    const rateLimit = {
+        max_requests_per_hour: parseInt(document.getElementById('max_requests_per_hour').value) || 100,
+        max_requests_per_day: parseInt(document.getElementById('max_requests_per_day').value) || 1000
+    };
+    configs['sync_rate_limit'] = JSON.stringify(rateLimit);
+    
+    // 批量保存
+    fetch('/sync-management/api/config/save-batch', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ configs: configs })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('所有配置已保存', 'success');
+        } else {
+            showMessage('保存失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('保存失败: ' + error.message, 'danger');
+    });
+}
+
+// 恢复默认设置
+function resetToDefaults() {
+    if (!confirm('确定要恢复所有配置到默认设置吗？此操作不可撤销。')) {
+        return;
+    }
+    
+    fetch('/sync-management/api/config/reset-defaults', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('已恢复默认设置，页面将刷新', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showMessage('恢复失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('恢复失败: ' + error.message, 'danger');
+    });
+}
+
+// 显示消息
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+
+// 监听危险开关
+document.addEventListener('DOMContentLoaded', function() {
+    // 危险开关确认
+    document.querySelectorAll('.switch-danger').forEach(switchEl => {
+        switchEl.addEventListener('change', function() {
+            if (this.checked) {
+                if (!confirm('⚠️ 警告：此操作可能影响系统内置数据的安全性，确定要开启吗？')) {
+                    this.checked = false;
+                    return;
+                }
+            }
+        });
+    });
+    
+    // 警告开关确认
+    document.querySelectorAll('.switch-warning').forEach(switchEl => {
+        switchEl.addEventListener('change', function() {
+            if (this.checked) {
+                if (!confirm('⚠️ 注意：此操作会允许App端数据覆盖服务器数据，确定要开启吗？')) {
+                    this.checked = false;
+                    return;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

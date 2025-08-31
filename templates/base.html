@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}修行记录后台管理{% endblock %}</title>
+    
+    <!-- Preload Font Awesome fonts for better performance -->
+    <link rel="preload" href="{{ url_for('static', filename='fonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/fa-regular-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/fa-brands-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/fontawesome-fixed.css') }}" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <style>
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #f8f9fc;
+        }
+        .sidebar .nav-link {
+            color: #858796;
+            padding: 1rem;
+            border-bottom: 1px solid #eaecf4;
+        }
+        .sidebar .nav-link:hover {
+            color: #5a5c69;
+            background-color: #eaecf4;
+        }
+        .sidebar .nav-link.active {
+            color: #fff !important;
+            background-color: #4e73df !important;
+            border-left: 4px solid #2653d3;
+            font-weight: bold;
+        }
+        .card {
+            border: 1px solid #e3e6f0;
+            border-radius: 0.35rem;
+        }
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        /* 防止页面跳动的样式 */
+        .table-responsive {
+            min-height: 400px; /* 为表格预留最小高度 */
+        }
+        
+        .dataTables_wrapper {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .dataTables_wrapper.loaded {
+            opacity: 1;
+        }
+        
+        /* 防止内容加载时的布局偏移 */
+        .container-fluid {
+            min-height: calc(100vh - 56px);
+        }
+        
+        main {
+            min-height: calc(100vh - 56px);
+        }
+        
+        /* 为分页导航预留空间 */
+        .pagination {
+            min-height: 40px;
+        }
+    </style>
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
+                <i class="fas fa-om"></i> 修行记录管理系统
+            </a>
+            
+            <div class="navbar-nav ml-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                    </a>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                            <i class="fas fa-user-circle"></i> 个人中心
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> 退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> 仪表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('buddha_nam.') }}" href="{{ url_for('buddha_nam.index') }}">
+                                <i class="fas fa-prayer-hands"></i> 佛号管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('sutra.') }}" href="{{ url_for('sutra.index') }}">
+                                <i class="fas fa-book-open"></i> 经文管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('dedication.') }}" href="{{ url_for('dedication.index') }}">
+                                <i class="fas fa-hands"></i> 回向文管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('records.') }}" href="{{ url_for('records.index') }}">
+                                <i class="fas fa-journal-whills"></i> 修行记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('stats.') }}" href="{{ url_for('stats.index') }}">
+                                <i class="fas fa-chart-bar"></i> 统计报表
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('users.') }}" href="{{ url_for('users.index') }}">
+                                <i class="fas fa-users"></i> 用户管理
+                            </a>
+                        </li>
+                        
+                        <!-- 同步管理菜单 -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-toggle="collapse" data-target="#syncSubmenu" aria-expanded="false">
+                                <i class="fas fa-sync-alt"></i> 同步管理 <i class="fas fa-caret-down float-right"></i>
+                            </a>
+                            <div class="collapse {{ 'show' if request.endpoint and request.endpoint.startswith('sync_management.') }}" id="syncSubmenu">
+                                <ul class="nav flex-column ml-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ 'active' if request.endpoint == 'sync_management.sync_records' }}" href="{{ url_for('sync_management.sync_records') }}">
+                                            <i class="fas fa-history"></i> 同步记录
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ 'active' if request.endpoint == 'sync_management.sync_configs' }}" href="{{ url_for('sync_management.sync_configs') }}">
+                                            <i class="fas fa-cogs"></i> 同步配置
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                {% endif %}
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mt-3" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+                
+                {% if current_user.is_authenticated %}
+            </main>
+        </div>
+    </div>
+    {% endif %}
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+    // 防止页面跳动 - 在DOM加载前就设置导航状态
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取当前页面路径
+        var currentPath = window.location.pathname;
+        
+        // 直接通过服务器端渲染的类名处理，避免客户端动态修改
+        // 这里只做补充检查，主要依赖服务器端的active类设置
+        
+        // 为DataTables容器添加加载完成类
+        setTimeout(function() {
+            $('.dataTables_wrapper').addClass('loaded');
+        }, 100);
+    });
+    
+    // 全局DataTables中文配置
+    $.extend(true, $.fn.dataTable.defaults, {
+        "language": {
+            "sProcessing": "处理中...",
+            "sLengthMenu": "显示 _MENU_ 项结果",
+            "sZeroRecords": "没有匹配结果",
+            "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+            "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+            "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+            "sInfoPostFix": "",
+            "sSearch": "搜索:",
+            "sUrl": "",
+            "sEmptyTable": "表中数据为空",
+            "sLoadingRecords": "载入中...",
+            "sInfoThousands": ",",
+            "oPaginate": {
+                "sFirst": "首页",
+                "sPrevious": "上页",
+                "sNext": "下页",
+                "sLast": "末页"
+            },
+            "oAria": {
+                "sSortAscending": ": 以升序排列此列",
+                "sSortDescending": ": 以降序排列此列"
+            }
+        }
+    });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

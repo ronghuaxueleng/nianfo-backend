@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}回向模板管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-hands mr-2"></i>回向模板管理
+        </h1>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">回向模板列表</h3>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addTemplateModal">
+                        <i class="fas fa-plus mr-1"></i>添加模板
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- 搜索和筛选 -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索标题或内容...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchDedications()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-primary btn-block" onclick="resetSearch()">
+                                <i class="fas fa-redo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="25%">标题</th>
+                                    <th width="45%">内容预览</th>
+                                    <th width="10%">类型</th>
+                                    <th width="12%">创建时间</th>
+                                    <th width="8%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>{{ template.id }}</td>
+                                    <td><strong>{{ template.title }}</strong></td>
+                                    <td>
+                                        <span class="text-truncate" style="max-width: 300px; display: inline-block;" title="{{ template.content }}">
+                                            {{ template.content[:80] }}{% if template.content|length > 80 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if template.is_built_in %}
+                                        <span class="badge badge-success">内置</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">自定义</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">
+                                        {{ template.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-info btn-sm" onclick="viewTemplate({{ template.id }})" title="查看">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-warning btn-sm" onclick="editTemplate({{ template.id }})" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteTemplate({{ template.id }})" title="删除">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加回向模板模态框 -->
+<div class="modal fade" id="addTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加回向模板</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addTemplateForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateTitle">模板标题</label>
+                        <input type="text" class="form-control" id="templateTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="templateContent">模板内容</label>
+                        <textarea class="form-control" id="templateContent" name="content" rows="6" required 
+                                  placeholder="请输入回向文模板内容，将作为app内置模板供用户选择"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewTemplateTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label><strong>模板内容：</strong></label>
+                    <div id="viewTemplateContent" class="border p-3" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="form-group">
+                    <label><strong>模板类型：</strong></label>
+                    <div id="viewTemplateType" class="border p-3"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑回向模板模态框 -->
+<div class="modal fade" id="editTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑回向模板</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="editTemplateForm">
+                <input type="hidden" id="editTemplateId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editTemplateTitle">模板标题</label>
+                        <input type="text" class="form-control" id="editTemplateTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTemplateContent">模板内容</label>
+                        <textarea class="form-control" id="editTemplateContent" name="content" rows="6" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 添加回向模板
+$('#addTemplateForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        title: $('#templateTitle').val(),
+        content: $('#templateContent').val(),
+        is_built_in: true  // 管理员创建的默认为内置模板
+    };
+    
+    $.ajax({
+        url: '/api/dedication-templates',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            $('#addTemplateModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('添加失败：' + xhr.responseJSON.message);
+        }
+    });
+});
+
+// 查看详情
+function viewTemplate(id) {
+    $.ajax({
+        url: `/api/dedication-templates/${id}`,
+        method: 'GET',
+        success: function(data) {
+            $('#viewTemplateTitle').text(data.title);
+            $('#viewTemplateContent').text(data.content);
+            $('#viewTemplateType').html(data.is_built_in ? 
+                '<span class="badge badge-success">内置模板</span>' : 
+                '<span class="badge badge-secondary">自定义模板</span>');
+            $('#viewTemplateModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取详情失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 编辑
+function editTemplate(id) {
+    $.ajax({
+        url: `/api/dedication-templates/${id}`,
+        method: 'GET',
+        success: function(data) {
+            $('#editTemplateId').val(data.id);
+            $('#editTemplateTitle').val(data.title);
+            $('#editTemplateContent').val(data.content);
+            $('#editTemplateModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取模板信息失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 保存编辑
+$('#editTemplateForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const id = $('#editTemplateId').val();
+    const formData = {
+        title: $('#editTemplateTitle').val(),
+        content: $('#editTemplateContent').val()
+    };
+    
+    $.ajax({
+        url: `/api/dedication-templates/${id}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            $('#editTemplateModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('修改失败：' + xhr.responseJSON.message);
+        }
+    });
+});
+
+// 删除
+function deleteTemplate(id) {
+    if (!confirm('确定要删除这个回向模板吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/api/dedication-templates/${id}`,
+        method: 'DELETE',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 搜索
+function searchDedications() {
+    const keyword = $('#searchInput').val();
+    if (keyword) {
+        window.location.href = `{{ url_for('dedication.index') }}?search=${encodeURIComponent(keyword)}`;
+    }
+}
+
+// 重置搜索
+function resetSearch() {
+    $('#searchInput').val('');
+    window.location.href = '{{ url_for('dedication.index') }}';
+}
+
+// 按Enter键搜索
+$('#searchInput').on('keypress', function(e) {
+    if (e.which === 13) {
+        searchDedications();
+    }
+});
+</script>
+{% endblock %}

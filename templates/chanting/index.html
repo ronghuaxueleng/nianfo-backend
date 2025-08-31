@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}佛号经文管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-dharmachakra mr-2"></i>佛号经文管理
+        </h1>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">佛号经文列表</h3>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addChantingModal">
+                            <i class="fas fa-plus mr-1"></i>添加佛号
+                        </button>
+                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addSutraModal">
+                            <i class="fas fa-scroll mr-1"></i>添加经文
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选选项 -->
+                    <div class="d-flex flex-nowrap align-items-center mb-3" style="gap: 10px;">
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="typeFilter">
+                                <option value="">全部类型</option>
+                                <option value="buddha" {% if current_type == 'buddha' %}selected{% endif %}>佛号</option>
+                                <option value="sutra" {% if current_type == 'sutra' %}selected{% endif %}>经文</option>
+                            </select>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="sourceFilter">
+                                <option value="">全部来源</option>
+                                <option value="builtin" {% if current_source == 'builtin' %}selected{% endif %}>内置</option>
+                                <option value="custom" {% if current_source == 'custom' %}selected{% endif %}>自定义</option>
+                            </select>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="userFilter">
+                                <option value="">全部用户</option>
+                                <option value="system" {% if current_user_filter == 'system' %}selected{% endif %}>系统内置</option>
+                                {% for user in users %}
+                                <option value="{{ user.username }}" {% if current_user_filter == user.username %}selected{% endif %}>{{ user.nickname or user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索标题或内容..." value="{{ current_search or '' }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchChantings()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="min-width: 80px;">
+                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="resetFilters()">
+                                <i class="fas fa-redo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="chantingTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="12%">标题</th>
+                                    <th width="8%">类型</th>
+                                    <th width="18%">内容预览</th>
+                                    <th width="12%">注音</th>
+                                    <th width="8%">来源</th>
+                                    <th width="10%">创建者</th>
+                                    <th width="12%">创建时间</th>
+                                    <th width="15%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chanting in chantings %}
+                                <tr data-id="{{ chanting.id }}">
+                                    <td>{{ chanting.id }}</td>
+                                    <td>
+                                        <strong>{{ chanting.title }}</strong>
+                                        {% if chanting.is_built_in %}
+                                        <span class="badge badge-info ml-1">内置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.type == 'buddha' %}
+                                        <span class="badge badge-warning">佛号</span>
+                                        {% else %}
+                                        <span class="badge badge-success">经文</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="text-truncate" style="max-width: 200px; display: inline-block;" title="{{ chanting.content }}">
+                                            {{ chanting.content[:50] }}{% if chanting.content|length > 50 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if chanting.pronunciation %}
+                                        <span class="text-muted small">{{ chanting.pronunciation[:30] }}...</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.is_built_in %}
+                                        <span class="text-info">内置</span>
+                                        {% else %}
+                                        <span class="text-primary">自定义</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.user %}
+                                        <span class="badge badge-secondary">{{ chanting.user.nickname or chanting.user.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">系统</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">
+                                        {{ chanting.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-info btn-sm" onclick="viewChanting({{ chanting.id }})" title="查看">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-warning btn-sm" onclick="editChanting({{ chanting.id }})" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteChanting({{ chanting.id }})" title="删除">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if pagination %}
+                    <nav aria-label="分页导航">
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('chanting.index', page=pagination.prev_num, type=current_type, source=current_source, search=current_search, user=current_user_filter) }}">上一页</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('chanting.index', page=page_num, type=current_type, source=current_source, search=current_search, user=current_user_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('chanting.index', page=pagination.next_num, type=current_type, source=current_source, search=current_search, user=current_user_filter) }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加佛号模态框 -->
+<div class="modal fade" id="addChantingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加佛号
+                    {% if current_user.username == 'admin' %}
+                        <span class="badge badge-info ml-2">将标记为内置</span>
+                    {% else %}
+                        <span class="badge badge-primary ml-2">将标记为自定义</span>
+                    {% endif %}
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addChantingForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="chantingTitle">佛号名称</label>
+                        <input type="text" class="form-control" id="chantingTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="chantingContent">佛号内容</label>
+                        <textarea class="form-control" id="chantingContent" name="content" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="chantingPronunciation">注音（可选）</label>
+                        <textarea class="form-control" id="chantingPronunciation" name="pronunciation" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 添加经文模态框 -->
+<div class="modal fade" id="addSutraModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加经文
+                    {% if current_user.username == 'admin' %}
+                        <span class="badge badge-info ml-2">将标记为内置</span>
+                    {% else %}
+                        <span class="badge badge-primary ml-2">将标记为自定义</span>
+                    {% endif %}
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addSutraForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="sutraTitle">经文名称</label>
+                        <input type="text" class="form-control" id="sutraTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sutraContent">经文内容</label>
+                        <textarea class="form-control" id="sutraContent" name="content" rows="8" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="sutraPronunciation">注音（可选）</label>
+                        <textarea class="form-control" id="sutraPronunciation" name="pronunciation" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewChantingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewChantingTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>类型：</strong>
+                        <span id="viewChantingType"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>来源：</strong>
+                        <span id="viewChantingSource"></span>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>创建者：</strong>
+                        <span id="viewChantingCreator"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>创建时间：</strong>
+                        <span id="viewChantingCreatedAt"></span>
+                    </div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label><strong>内容：</strong></label>
+                    <div id="viewChantingContent" class="border p-3" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="form-group">
+                    <label><strong>注音：</strong></label>
+                    <div id="viewChantingPronunciation" class="border p-3 text-muted" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 禁用原有的DataTables，避免与自定义分页冲突和页面跳动
+    // $('#chantingTable').DataTable({
+    //     "pageLength": 20,
+    //     "ordering": true,
+    //     "searching": false
+    // });
+    
+    // 添加平滑加载效果
+    $('.dataTables_wrapper').addClass('loaded');
+});
+
+// 添加佛号
+$('#addChantingForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('title', $('#chantingTitle').val());
+    formData.append('content', $('#chantingContent').val());
+    formData.append('pronunciation', $('#chantingPronunciation').val());
+    formData.append('type', 'buddha');
+    
+    $.ajax({
+        url: '/chanting/create',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            $('#addChantingModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('添加失败，请检查输入信息');
+        }
+    });
+});
+
+// 添加经文
+$('#addSutraForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('title', $('#sutraTitle').val());
+    formData.append('content', $('#sutraContent').val());
+    formData.append('pronunciation', $('#sutraPronunciation').val());
+    formData.append('type', 'sutra');
+    
+    $.ajax({
+        url: '/chanting/create',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            $('#addSutraModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('添加失败，请检查输入信息');
+        }
+    });
+});
+
+// 查看详情
+function viewChanting(id) {
+    $.ajax({
+        url: `/chanting/${id}/detail`,
+        method: 'GET',
+        success: function(data) {
+            $('#viewChantingTitle').text(data.title);
+            $('#viewChantingType').html(data.type === 'buddha' ? '<span class="badge badge-warning">佛号</span>' : '<span class="badge badge-success">经文</span>');
+            $('#viewChantingSource').html(data.is_built_in ? '<span class="text-info">内置</span>' : '<span class="text-primary">自定义</span>');
+            
+            // 显示创建者信息
+            if (data.user) {
+                const creatorName = data.user.nickname || data.user.username;
+                $('#viewChantingCreator').html('<span class="badge badge-secondary">' + creatorName + '</span>');
+            } else {
+                $('#viewChantingCreator').html('<span class="text-muted">系统</span>');
+            }
+            
+            // 显示创建时间
+            if (data.created_at) {
+                const createdAt = new Date(data.created_at).toLocaleString('zh-CN');
+                $('#viewChantingCreatedAt').text(createdAt);
+            } else {
+                $('#viewChantingCreatedAt').text('未知');
+            }
+            
+            $('#viewChantingContent').text(data.content);
+            $('#viewChantingPronunciation').text(data.pronunciation || '无注音');
+            $('#viewChantingModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取详情失败：' + xhr.responseJSON.message);
+        }
+    });
+}
+
+// 编辑
+function editChanting(id) {
+    window.location.href = `/chanting/${id}/edit`;
+}
+
+// 删除
+function deleteChanting(id) {
+    if (!confirm('确定要删除这个项目吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/chanting/${id}/api-delete`,
+        method: 'POST',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+
+// 搜索
+function searchChantings() {
+    const keyword = $('#searchInput').val();
+    const type = $('#typeFilter').val();
+    const source = $('#sourceFilter').val();
+    const user = $('#userFilter').val();
+    
+    let url = '{{ url_for("chanting.index") }}?';
+    const params = [];
+    
+    if (keyword) params.push(`search=${encodeURIComponent(keyword)}`);
+    if (type) params.push(`type=${type}`);
+    if (source) params.push(`source=${source}`);
+    if (user) params.push(`user=${user}`);
+    
+    window.location.href = url + params.join('&');
+}
+
+// 重置筛选
+function resetFilters() {
+    $('#searchInput').val('');
+    $('#typeFilter').val('');
+    $('#sourceFilter').val('');
+    $('#userFilter').val('');
+    window.location.href = '{{ url_for("chanting.index") }}';
+}
+
+// 按Enter键搜索
+$('#searchInput').on('keypress', function(e) {
+    if (e.which === 13) {
+        searchChantings();
+    }
+});
+
+// 筛选器改变时自动搜索
+$('#typeFilter, #sourceFilter, #userFilter').on('change', function() {
+    searchChantings();
+});
+</script>
+{% endblock %}

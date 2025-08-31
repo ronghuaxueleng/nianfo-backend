@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}用户详情 - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面导航 -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('users.index') }}">用户管理</a></li>
+            <li class="breadcrumb-item active">{{ user.username }}</li>
+        </ol>
+    </nav>
+
+    <!-- 用户基本信息 -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>基本信息
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <!-- 头像 -->
+                    <div class="mb-3">
+                        {% if user.avatar_type == 'emoji' %}
+                            <div style="font-size: 4em;">{{ user.avatar or '👤' }}</div>
+                        {% elif user.avatar_type == 'image' %}
+                            <img src="{{ user.avatar }}" class="rounded-circle" width="100" height="100" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div style="font-size: 4em; display: none;">👤</div>
+                        {% else %}
+                            <div style="font-size: 4em;">👤</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 用户信息 -->
+                    <h4 class="mb-1">{{ user.nickname or user.username }}</h4>
+                    {% if user.nickname %}
+                    <p class="text-muted mb-2">@{{ user.username }}</p>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {% if user.avatar_type == 'emoji' %}
+                            <span class="badge bg-primary">表情头像</span>
+                        {% elif user.avatar_type == 'image' %}
+                            <span class="badge bg-success">图片头像</span>
+                        {% else %}
+                            <span class="badge bg-secondary">默认头像</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 注册信息 -->
+                    <div class="border-top pt-3">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <small class="text-muted d-block">用户ID</small>
+                                <strong>{{ user.id }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">注册时间</small>
+                                <strong>
+                                    {% if user.created_at %}
+                                        {{ user.created_at.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        未知
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('users.edit', user_id=user.id) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-1"></i>编辑用户
+                        </a>
+                        <button type="button" class="btn btn-danger" 
+                                onclick="confirmDelete({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-trash me-1"></i>删除用户
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- 统计信息 -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-list fa-2x mb-2"></i>
+                            <h3>{{ record_count }}</h3>
+                            <p class="mb-0">修行记录</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-pray fa-2x mb-2"></i>
+                            <h3>{{ total_count }}</h3>
+                            <p class="mb-0">总念诵次数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-heart fa-2x mb-2"></i>
+                            <h3>{{ dedication_count }}</h3>
+                            <p class="mb-0">回向记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 最近活动 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>最近活动
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_stats %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>念诵次数</th>
+                                    <th>更新时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in recent_stats %}
+                                <tr>
+                                    <td>{{ stat.date.strftime('%Y-%m-%d') if stat.date else '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ stat.count }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ stat.updated_at.strftime('%H:%M') if stat.updated_at else '-' }}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">暂无活动记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 详细信息表格 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>详细信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th width="200">用户ID</th>
+                                    <td>{{ user.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>用户名</th>
+                                    <td>{{ user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>昵称</th>
+                                    <td>{{ user.nickname or '未设置' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>头像类型</th>
+                                    <td>
+                                        {% if user.avatar_type == 'emoji' %}
+                                            表情头像
+                                        {% elif user.avatar_type == 'image' %}
+                                            图片头像
+                                        {% else %}
+                                            默认头像
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>头像内容</th>
+                                    <td>
+                                        {% if user.avatar %}
+                                            {% if user.avatar_type == 'emoji' %}
+                                                {{ user.avatar }}
+                                            {% else %}
+                                                <a href="{{ user.avatar }}" target="_blank">查看图片</a>
+                                            {% endif %}
+                                        {% else %}
+                                            未设置
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>注册时间</th>
+                                    <td>
+                                        {% if user.created_at %}
+                                            {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            未知
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除用户 <strong id="deleteUsername"></strong> 吗？</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>警告：</strong>此操作将标记用户为已删除状态，用户将无法继续使用系统。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="POST" id="deleteForm" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(userId, username) {
+    document.getElementById('deleteUsername').textContent = username;
+    document.getElementById('deleteForm').action = `{{ url_for('users.index') }}/${userId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

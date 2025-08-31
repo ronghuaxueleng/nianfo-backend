@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}佛号管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-prayer-hands mr-2"></i>佛号管理
+        </h1>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">佛号列表</h3>
+                    <div class="btn-group">
+                        <a href="{{ url_for('buddha_nam.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-1"></i>添加佛号
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选选项 -->
+                    <div class="d-flex flex-nowrap align-items-center mb-3" style="gap: 10px;">
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="sourceFilter">
+                                <option value="">全部来源</option>
+                                <option value="builtin" {% if current_source == 'builtin' %}selected{% endif %}>内置</option>
+                                <option value="custom" {% if current_source == 'custom' %}selected{% endif %}>自定义</option>
+                            </select>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="userFilter">
+                                <option value="">全部用户</option>
+                                <option value="system" {% if current_user_filter == 'system' %}selected{% endif %}>系统内置</option>
+                                {% for user in users %}
+                                <option value="{{ user.username }}" {% if current_user_filter == user.username %}selected{% endif %}>{{ user.nickname or user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索佛号名称或内容..." value="{{ current_search or '' }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchBuddhaNams()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="min-width: 80px;">
+                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="resetFilters()">
+                                <i class="fas fa-redo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="buddhaNamTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="15%">佛号名称</th>
+                                    <th width="25%">佛号内容</th>
+                                    <th width="15%">注音</th>
+                                    <th width="8%">来源</th>
+                                    <th width="10%">创建者</th>
+                                    <th width="12%">创建时间</th>
+                                    <th width="10%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chanting in chantings.items %}
+                                <tr data-id="{{ chanting.id }}">
+                                    <td>{{ chanting.id }}</td>
+                                    <td>
+                                        <strong>{{ chanting.title }}</strong>
+                                        {% if chanting.is_built_in %}
+                                        <span class="badge badge-info ml-1">内置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="text-truncate" style="max-width: 300px; display: inline-block;" title="{{ chanting.content }}">
+                                            {{ chanting.content[:80] }}{% if chanting.content|length > 80 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if chanting.pronunciation %}
+                                        <span class="text-muted small">{{ chanting.pronunciation[:30] }}...</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.is_built_in %}
+                                        <span class="text-info">内置</span>
+                                        {% else %}
+                                        <span class="text-primary">自定义</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.user %}
+                                        <span class="badge badge-secondary">{{ chanting.user.nickname or chanting.user.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">系统</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">
+                                        {{ chanting.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-info btn-sm" onclick="viewBuddhaNam({{ chanting.id }})" title="查看">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <a href="{{ url_for('buddha_nam.edit', chanting_id=chanting.id) }}" class="btn btn-warning btn-sm" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteBuddhaNam({{ chanting.id }})" title="删除">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if chantings.pages > 1 %}
+                    <nav aria-label="分页导航">
+                        <ul class="pagination justify-content-center">
+                            {% if chantings.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('buddha_nam.index', page=chantings.prev_num, source=current_source, search=current_search, user=current_user_filter) }}">上一页</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in chantings.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != chantings.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('buddha_nam.index', page=page_num, source=current_source, search=current_search, user=current_user_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if chantings.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('buddha_nam.index', page=chantings.next_num, source=current_source, search=current_search, user=current_user_filter) }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewBuddhaNamModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewBuddhaNamTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>类型：</strong>
+                        <span class="badge badge-warning">佛号</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>来源：</strong>
+                        <span id="viewBuddhaNamSource"></span>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>创建者：</strong>
+                        <span id="viewBuddhaNamCreator"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>创建时间：</strong>
+                        <span id="viewBuddhaNamCreatedAt"></span>
+                    </div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label><strong>佛号内容：</strong></label>
+                    <div id="viewBuddhaNamContent" class="border p-3" style="white-space: pre-wrap; font-size: 16px;"></div>
+                </div>
+                <div class="form-group">
+                    <label><strong>注音：</strong></label>
+                    <div id="viewBuddhaNamPronunciation" class="border p-3 text-muted" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 添加平滑加载效果
+    $('.dataTables_wrapper').addClass('loaded');
+});
+
+// 查看详情
+function viewBuddhaNam(id) {
+    $.ajax({
+        url: `/buddha-nam/${id}/detail`,
+        method: 'GET',
+        success: function(data) {
+            $('#viewBuddhaNamTitle').text(data.title);
+            $('#viewBuddhaNamSource').html(data.is_built_in ? '<span class="text-info">内置</span>' : '<span class="text-primary">自定义</span>');
+            
+            // 显示创建者信息
+            if (data.user) {
+                const creatorName = data.user.nickname || data.user.username;
+                $('#viewBuddhaNamCreator').html('<span class="badge badge-secondary">' + creatorName + '</span>');
+            } else {
+                $('#viewBuddhaNamCreator').html('<span class="text-muted">系统</span>');
+            }
+            
+            // 显示创建时间
+            if (data.created_at) {
+                const createdAt = new Date(data.created_at).toLocaleString('zh-CN');
+                $('#viewBuddhaNamCreatedAt').text(createdAt);
+            } else {
+                $('#viewBuddhaNamCreatedAt').text('未知');
+            }
+            
+            $('#viewBuddhaNamContent').text(data.content);
+            $('#viewBuddhaNamPronunciation').text(data.pronunciation || '无注音');
+            $('#viewBuddhaNamModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取详情失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+
+// 删除
+function deleteBuddhaNam(id) {
+    if (!confirm('确定要删除这个佛号吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/buddha-nam/${id}/api-delete`,
+        method: 'POST',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+
+// 搜索
+function searchBuddhaNams() {
+    const keyword = $('#searchInput').val();
+    const source = $('#sourceFilter').val();
+    const user = $('#userFilter').val();
+    
+    let url = '{{ url_for("buddha_nam.index") }}?';
+    const params = [];
+    
+    if (keyword) params.push(`search=${encodeURIComponent(keyword)}`);
+    if (source) params.push(`source=${source}`);
+    if (user) params.push(`user=${user}`);
+    
+    window.location.href = url + params.join('&');
+}
+
+// 重置筛选
+function resetFilters() {
+    $('#searchInput').val('');
+    $('#sourceFilter').val('');
+    $('#userFilter').val('');
+    window.location.href = '{{ url_for("buddha_nam.index") }}';
+}
+
+// 按Enter键搜索
+$('#searchInput').on('keypress', function(e) {
+    if (e.which === 13) {
+        searchBuddhaNams();
+    }
+});
+
+// 筛选器改变时自动搜索
+$('#sourceFilter, #userFilter').on('change', function() {
+    searchBuddhaNams();
+});
+</script>
+{% endblock %}

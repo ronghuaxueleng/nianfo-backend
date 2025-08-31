@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}编辑个人资料{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面导航 -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('auth.profile') }}">个人中心</a></li>
+            <li class="breadcrumb-item active">编辑资料</li>
+        </ol>
+    </nav>
+
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 text-primary">
+            <i class="fas fa-user-edit me-2"></i>编辑个人资料
+        </h2>
+        <div class="btn-group">
+            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>返回
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 编辑表单 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>基本信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user me-1"></i>用户名 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           value="{{ user.username }}" required>
+                                    <div class="form-text">用于登录系统的用户名</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="fas fa-envelope me-1"></i>邮箱地址 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ user.email }}" required>
+                                    <div class="form-text">用于接收系统通知</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h6 class="mb-3">
+                            <i class="fas fa-key me-2"></i>修改密码 <small class="text-muted">(可选)</small>
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_password" class="form-label">当前密码</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="current_password" name="current_password">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('current_password')" title="显示/隐藏密码">
+                                            <i class="fas fa-eye" id="current_password_icon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">如要修改密码，请先输入当前密码</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="new_password" class="form-label">新密码</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="new_password" name="new_password" minlength="6">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('new_password')" title="显示/隐藏密码">
+                                            <i class="fas fa-eye" id="new_password_icon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">至少6位字符</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">确认新密码</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="6">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm_password')" title="显示/隐藏密码">
+                                            <i class="fas fa-eye" id="confirm_password_icon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">再次输入新密码</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>保存更改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 帮助信息 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>注意事项
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-lightbulb me-1"></i>修改提示
+                        </h6>
+                        <ul class="mb-0">
+                            <li>用户名和邮箱不能为空</li>
+                            <li>用户名和邮箱不能与其他管理员重复</li>
+                            <li>如不修改密码，请留空密码字段</li>
+                            <li>新密码至少需要6位字符</li>
+                            <li>修改密码需要先输入当前密码验证</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-1"></i>安全提醒
+                        </h6>
+                        <p class="mb-0">
+                            修改用户名或密码后，建议重新登录以确保信息同步。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 当前信息展示 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>当前信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl>
+                        <dt>用户名</dt>
+                        <dd><code>{{ user.username }}</code></dd>
+                        
+                        <dt>邮箱</dt>
+                        <dd><code>{{ user.email }}</code></dd>
+                        
+                        <dt>创建时间</dt>
+                        <dd>
+                            {% if user.created_at %}
+                                {{ user.created_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                未知
+                            {% endif %}
+                        </dd>
+                        
+                        <dt>最后登录</dt>
+                        <dd>
+                            {% if user.last_login %}
+                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                从未登录
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 密码显示/隐藏切换
+function togglePassword(fieldId) {
+    const passwordField = document.getElementById(fieldId);
+    const passwordIcon = document.getElementById(fieldId + '_icon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        passwordIcon.className = 'fas fa-eye-slash';
+    } else {
+        passwordField.type = 'password';
+        passwordIcon.className = 'fas fa-eye';
+    }
+}
+
+// 密码验证
+document.addEventListener('DOMContentLoaded', function() {
+    const newPasswordInput = document.getElementById('new_password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const currentPasswordInput = document.getElementById('current_password');
+    
+    // 如果输入了新密码，则当前密码为必填
+    newPasswordInput.addEventListener('input', function() {
+        if (this.value) {
+            currentPasswordInput.required = true;
+            confirmPasswordInput.required = true;
+        } else {
+            currentPasswordInput.required = false;
+            confirmPasswordInput.required = false;
+        }
+    });
+    
+    // 密码确认验证
+    function validatePassword() {
+        if (newPasswordInput.value && confirmPasswordInput.value) {
+            if (newPasswordInput.value !== confirmPasswordInput.value) {
+                confirmPasswordInput.setCustomValidity('两次输入的密码不一致');
+            } else {
+                confirmPasswordInput.setCustomValidity('');
+            }
+        } else {
+            confirmPasswordInput.setCustomValidity('');
+        }
+    }
+    
+    newPasswordInput.addEventListener('input', validatePassword);
+    confirmPasswordInput.addEventListener('input', validatePassword);
+    
+    // 表单提交前最终验证
+    document.querySelector('form').addEventListener('submit', function(e) {
+        validatePassword();
+        
+        if (newPasswordInput.value) {
+            if (!currentPasswordInput.value) {
+                alert('请输入当前密码');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (newPasswordInput.value.length < 6) {
+                alert('新密码至少需要6位字符');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (newPasswordInput.value !== confirmPasswordInput.value) {
+                alert('两次输入的密码不一致');
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

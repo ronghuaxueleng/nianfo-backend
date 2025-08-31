@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 text-primary mb-4">
+                <i class="bi bi-house-heart"></i> 修行记录管理系统
+            </h1>
+            <p class="lead text-muted mb-4">
+                佛号经文、回向文本和修行记录的后台管理平台
+            </p>
+            
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h3 class="mb-4">功能特色</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="feature-item">
+                                <i class="bi bi-journal-text text-primary h2"></i>
+                                <h5>佛号经文管理</h5>
+                                <p class="text-muted">管理佛号和经文，支持注音和内容编辑</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="feature-item">
+                                <i class="bi bi-heart text-primary h2"></i>
+                                <h5>回向文管理</h5>
+                                <p class="text-muted">管理各种回向文本和模板</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="feature-item">
+                                <i class="bi bi-list-check text-primary h2"></i>
+                                <h5>修行记录追踪</h5>
+                                <p class="text-muted">记录和管理用户的修行进度</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="feature-item">
+                                <i class="bi bi-graph-up text-primary h2"></i>
+                                <h5>统计分析</h5>
+                                <p class="text-muted">提供详细的修行统计和分析报表</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> 进入管理后台
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <p class="text-muted">
+                    <i class="bi bi-info-circle"></i> 
+                    此系统支持与Flutter移动应用的API数据同步
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-item {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.feature-item i {
+    margin-bottom: 15px;
+}
+</style>
+{% endblock %}

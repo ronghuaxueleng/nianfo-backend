@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}添加经文{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book-open mr-2"></i>添加经文
+        </h1>
+        <a href="{{ url_for('sutra.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i>返回列表
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        经文信息
+                        {% if current_user.username == 'admin' %}
+                            <span class="badge badge-info ml-2">将标记为内置</span>
+                        {% else %}
+                            <span class="badge badge-primary ml-2">将标记为自定义</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">经文名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   placeholder="请输入经文名称，如：心经、金刚经等">
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>关于经文内容：</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>经文的具体内容现在通过章节系统管理</li>
+                                <li>创建经文后，请点击"管理章节"来添加经文的具体内容</li>
+                                <li>每个章节可以独立设置内容和注音</li>
+                                <li>这样可以更好地组织长篇经文的结构</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save mr-1"></i>保存经文
+                        </button>
+                        <a href="{{ url_for('sutra.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i>取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 表单验证
+    $('form').on('submit', function(e) {
+        const title = $('#title').val().trim();
+        
+        if (!title) {
+            e.preventDefault();
+            alert('请填写经文名称');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

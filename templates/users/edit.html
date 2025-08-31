@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}编辑用户 - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面导航 -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('users.index') }}">用户管理</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('users.detail', user_id=user.id) }}">{{ user.username }}</a></li>
+            <li class="breadcrumb-item active">编辑</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>编辑用户信息
+                    </h5>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <!-- 基本信息 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user me-1"></i>用户名
+                                    </label>
+                                    <input type="text" class="form-control" id="username" 
+                                           value="{{ user.username }}" readonly>
+                                    <div class="form-text">用户名不可修改</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nickname" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>昵称
+                                    </label>
+                                    <input type="text" class="form-control" id="nickname" name="nickname"
+                                           value="{{ user.nickname or '' }}" maxlength="50">
+                                    <div class="form-text">用户的显示名称</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 头像设置 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-image me-1"></i>头像设置
+                            </label>
+                            
+                            <!-- 头像类型选择 -->
+                            <div class="mb-3">
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="avatar_type" id="avatar_type_emoji" 
+                                           value="emoji" {% if user.avatar_type == 'emoji' %}checked{% endif %}>
+                                    <label class="btn btn-outline-primary" for="avatar_type_emoji">
+                                        😊 表情头像
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="avatar_type" id="avatar_type_image" 
+                                           value="image" {% if user.avatar_type == 'image' %}checked{% endif %}>
+                                    <label class="btn btn-outline-success" for="avatar_type_image">
+                                        🖼️ 图片头像
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="avatar_type" id="avatar_type_default" 
+                                           value="" {% if not user.avatar_type or user.avatar_type == 'default' %}checked{% endif %}>
+                                    <label class="btn btn-outline-secondary" for="avatar_type_default">
+                                        👤 默认头像
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 当前头像预览 -->
+                            <div class="mb-3">
+                                <label class="form-label">当前头像</label>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        {% if user.avatar_type == 'emoji' %}
+                                            <span style="font-size: 3em;" id="avatar_preview">{{ user.avatar or '👤' }}</span>
+                                        {% elif user.avatar_type == 'image' %}
+                                            <img src="{{ user.avatar }}" class="rounded-circle" width="60" height="60" 
+                                                 id="avatar_preview" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                            <span style="font-size: 3em; display: none;">👤</span>
+                                        {% else %}
+                                            <span style="font-size: 3em;" id="avatar_preview">👤</span>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <small class="text-muted">
+                                            类型：{{ user.avatar_type or '默认' }}<br>
+                                            内容：{{ user.avatar or '无' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 头像内容输入 -->
+                            <div class="mb-3" id="avatar_input_group">
+                                <label for="avatar" class="form-label">头像内容</label>
+                                <input type="text" class="form-control" id="avatar" name="avatar"
+                                       value="{{ user.avatar or '' }}" maxlength="500">
+                                <div class="form-text" id="avatar_help">
+                                    {% if user.avatar_type == 'emoji' %}
+                                        输入一个表情符号，如：😊 🙏 🌸
+                                    {% elif user.avatar_type == 'image' %}
+                                        输入图片URL地址
+                                    {% else %}
+                                        使用默认头像时无需输入内容
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 密码设置 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-lock me-1"></i>密码设置
+                            </label>
+                            
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">新密码</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password"
+                                       minlength="6" maxlength="50">
+                                <div class="form-text">留空则不修改密码，最少6位字符</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">确认新密码</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                       minlength="6" maxlength="50">
+                                <div class="invalid-feedback" id="password_error">
+                                    两次输入的密码不一致
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 用户状态 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>账户信息
+                            </label>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">注册时间</h6>
+                                            <p class="card-text">
+                                                {% if user.created_at %}
+                                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                                {% else %}
+                                                    未知
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">用户ID</h6>
+                                            <p class="card-text">{{ user.id }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="{{ url_for('users.detail', user_id=user.id) }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i>返回
+                                </a>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-warning me-2" onclick="resetForm()">
+                                    <i class="fas fa-undo me-1"></i>重置
+                                </button>
+                                <button type="submit" class="btn btn-success" id="submit_btn">
+                                    <i class="fas fa-save me-1"></i>保存更改
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 头像类型切换
+document.querySelectorAll('input[name="avatar_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        updateAvatarInput(this.value);
+    });
+});
+
+// 密码确认验证
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('new_password').value;
+    const confirm = this.value;
+    const errorDiv = document.getElementById('password_error');
+    const submitBtn = document.getElementById('submit_btn');
+    
+    if (password && confirm && password !== confirm) {
+        this.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else {
+        this.classList.remove('is-invalid');
+        submitBtn.disabled = false;
+    }
+});
+
+// 头像内容实时预览
+document.getElementById('avatar').addEventListener('input', function() {
+    const avatarType = document.querySelector('input[name="avatar_type"]:checked').value;
+    const avatarValue = this.value;
+    const preview = document.getElementById('avatar_preview');
+    
+    if (avatarType === 'emoji' && avatarValue) {
+        preview.textContent = avatarValue;
+    } else if (avatarType === 'image' && avatarValue) {
+        if (preview.tagName === 'IMG') {
+            preview.src = avatarValue;
+        }
+    }
+});
+
+function updateAvatarInput(type) {
+    const avatarInput = document.getElementById('avatar');
+    const helpText = document.getElementById('avatar_help');
+    
+    switch(type) {
+        case 'emoji':
+            helpText.textContent = '输入一个表情符号，如：😊 🙏 🌸';
+            avatarInput.placeholder = '😊';
+            avatarInput.disabled = false;
+            break;
+        case 'image':
+            helpText.textContent = '输入图片URL地址';
+            avatarInput.placeholder = 'https://example.com/avatar.jpg';
+            avatarInput.disabled = false;
+            break;
+        case '':
+        case 'default':
+            helpText.textContent = '使用默认头像时无需输入内容';
+            avatarInput.placeholder = '';
+            avatarInput.disabled = true;
+            avatarInput.value = '';
+            break;
+    }
+}
+
+function resetForm() {
+    if (confirm('确定要重置表单吗？所有未保存的更改将丢失。')) {
+        location.reload();
+    }
+}
+
+// 初始化头像输入状态
+document.addEventListener('DOMContentLoaded', function() {
+    const checkedType = document.querySelector('input[name="avatar_type"]:checked');
+    if (checkedType) {
+        updateAvatarInput(checkedType.value);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+
+{% block title %}同步记录管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>📱 同步记录管理</h2>
+                <div>
+                    <button type="button" class="btn btn-info" onclick="refreshStats()">
+                        <i class="fas fa-sync-alt"></i> 刷新统计
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row mb-4" id="statsContainer">
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-database fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">总记录数</div>
+                                <div class="h4 font-weight-bold mb-0" id="totalRecords">{{ stats.total_records }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-check-circle fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">成功记录</div>
+                                <div class="h4 font-weight-bold mb-0" id="successRecords">{{ stats.success_records }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-danger text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-times-circle fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">失败记录</div>
+                                <div class="h4 font-weight-bold mb-0" id="failedRecords">{{ stats.failed_records }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-chart-pie fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">成功率</div>
+                                <div class="h4 font-weight-bold mb-0" id="successRate">{{ stats.success_rate }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-warning text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-users fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">活跃用户</div>
+                                <div class="h4 font-weight-bold mb-0" id="activeUsers">{{ stats.active_users }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-secondary text-white h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="mr-3">
+                                <i class="fas fa-mobile-alt fa-2x" style="opacity: 0.75;"></i>
+                            </div>
+                            <div>
+                                <div class="small" style="color: rgba(255,255,255,0.75);">活跃设备</div>
+                                <div class="h4 font-weight-bold mb-0" id="activeDevices">{{ stats.active_devices }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选表单 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">筛选条件</h5>
+                    <div id="filterStatus" class="text-muted small" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> 正在筛选...
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="GET" id="filterForm">
+                        <div class="row align-items-end mb-3">
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <label for="user_id" class="small text-muted">用户</label>
+                                <select class="form-control form-control-sm auto-submit" id="user_id" name="user_id">
+                                    <option value="">所有用户</option>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}" {% if filters.user_id == user.id %}selected{% endif %}>
+                                        {{ user.username }}
+                                        {% if user.nickname %}({{ user.nickname }}){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <label for="device_id" class="small text-muted">设备ID</label>
+                                <input type="text" class="form-control form-control-sm" id="device_id" name="device_id" 
+                                       value="{{ filters.device_id or '' }}" placeholder="设备标识">
+                            </div>
+
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <label for="sync_status" class="small text-muted">同步状态</label>
+                                <select class="form-control form-control-sm auto-submit" id="sync_status" name="sync_status">
+                                    <option value="">所有状态</option>
+                                    <option value="success" {% if filters.sync_status == 'success' %}selected{% endif %}>✅ 成功</option>
+                                    <option value="failed" {% if filters.sync_status == 'failed' %}selected{% endif %}>❌ 失败</option>
+                                    <option value="partial" {% if filters.sync_status == 'partial' %}selected{% endif %}>⚠️ 部分成功</option>
+                                </select>
+                            </div>
+
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <label for="date_from" class="small text-muted">开始日期</label>
+                                <input type="date" class="form-control form-control-sm auto-submit" id="date_from" name="date_from" 
+                                       value="{{ filters.date_from or '' }}">
+                            </div>
+
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <label for="date_to" class="small text-muted">结束日期</label>
+                                <input type="date" class="form-control form-control-sm auto-submit" id="date_to" name="date_to" 
+                                       value="{{ filters.date_to or '' }}">
+                            </div>
+
+                            <div class="col-lg-2 col-md-4 col-sm-12 mb-2">
+                                <button type="button" id="batchDeleteBtn" class="btn btn-danger btn-sm" style="display: none;" onclick="batchDeleteRecords()">
+                                    <i class="fas fa-trash"></i> 批量删除 (<span id="selectedCount">0</span>)
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 同步记录表格 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">同步记录列表</h5>
+                </div>
+                <div class="card-body" id="recordsContainer">
+                    {% include 'sync_management/records_table.html' %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="recordDetailsModal" tabindex="-1" role="dialog" aria-labelledby="recordDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recordDetailsModalLabel">同步记录详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="recordDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRecordDetails(recordId) {
+    $('#recordDetailsModal').modal('show');
+    
+    fetch(`/sync-management/api/records/${recordId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本信息</h6>
+                        <table class="table table-sm">
+                            <tr><td>记录ID</td><td>${data.id}</td></tr>
+                            <tr><td>用户</td><td>${data.user ? `${data.user.username} ${data.user.nickname ? `(${data.user.nickname})` : ''}` : '未知用户'}</td></tr>
+                            <tr><td>设备ID</td><td><code>${data.device_id}</code></td></tr>
+                            <tr><td>同步类型</td><td>${data.sync_type === 'full' ? '全量同步' : '增量同步'}</td></tr>
+                            <tr><td>同步方向</td><td>${data.sync_direction === 'upload' ? '上传' : data.sync_direction === 'download' ? '下载' : '双向'}</td></tr>
+                            <tr><td>同步状态</td><td>
+                                <span class="badge badge-${data.sync_status === 'success' ? 'success' : data.sync_status === 'failed' ? 'danger' : 'warning'}">
+                                    ${data.sync_status === 'success' ? '成功' : data.sync_status === 'failed' ? '失败' : '部分成功'}
+                                </span>
+                            </td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>时间信息</h6>
+                        <table class="table table-sm">
+                            <tr><td>开始时间</td><td>${data.sync_started_at ? new Date(data.sync_started_at).toLocaleString() : '-'}</td></tr>
+                            <tr><td>完成时间</td><td>${data.sync_completed_at ? new Date(data.sync_completed_at).toLocaleString() : '-'}</td></tr>
+                            <tr><td>耗时</td><td>${data.duration || '-'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>数据类型</h6>
+                        <pre class="bg-light p-2 rounded"><code>${data.sync_data_types || '无'}</code></pre>
+                    </div>
+                </div>
+                ${data.error_message ? `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6 class="text-danger">错误信息</h6>
+                        <div class="alert alert-danger">
+                            <pre class="mb-0">${data.error_message}</pre>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            document.getElementById('recordDetailsContent').innerHTML = content;
+        })
+        .catch(error => {
+            document.getElementById('recordDetailsContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> 加载失败: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function refreshStats() {
+    $.ajax({
+        url: '/sync-management/api/stats',
+        type: 'GET',
+        success: function(data) {
+            // 更新统计数据
+            $('#totalRecords').text(data.total_records);
+            $('#successRecords').text(data.success_records);
+            $('#failedRecords').text(data.failed_records);
+            $('#successRate').text(data.success_rate + '%');
+            $('#activeUsers').text(data.active_users);
+            $('#activeDevices').text(data.active_devices);
+        },
+        error: function() {
+            console.error('刷新统计失败');
+        }
+    });
+}
+
+function deleteRecord(recordId) {
+    if (!confirm('确定要删除这条同步记录吗？此操作不可撤销。')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/sync-management/api/records/${recordId}/delete`,
+        type: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                showSuccessMessage(response.message);
+                loadRecords();
+                refreshStats(); // 刷新统计数据
+            } else {
+                alert('删除失败: ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function batchDeleteRecords() {
+    const selectedIds = [];
+    $('.record-checkbox:checked').each(function() {
+        selectedIds.push($(this).val());
+    });
+    
+    if (selectedIds.length === 0) {
+        alert('请选择要删除的记录');
+        return;
+    }
+    
+    if (!confirm(`确定要删除选中的 ${selectedIds.length} 条同步记录吗？此操作不可撤销。`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/sync-management/api/records/batch-delete',
+        type: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            record_ids: selectedIds
+        }),
+        success: function(response) {
+            if (response.success) {
+                showSuccessMessage(response.message);
+                loadRecords();
+                refreshStats(); // 刷新统计数据
+                updateBatchDeleteButton(); // 重新计算选中数量
+            } else {
+                alert('批量删除失败: ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('批量删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function showSuccessMessage(message) {
+    // 移除已存在的提示
+    $('.alert-success').alert('close');
+    
+    $('body').append(`
+        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;">
+            <i class="fas fa-check-circle"></i> ${message}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `);
+    
+    // 3秒后自动关闭提示
+    setTimeout(function() {
+        $('.alert-success').alert('close');
+    }, 3000);
+}
+
+function updateBatchDeleteButton() {
+    const checkedCount = $('.record-checkbox:checked').length;
+    const totalCount = $('.record-checkbox').length;
+    
+    $('#selectedCount').text(checkedCount);
+    
+    if (checkedCount > 0) {
+        $('#batchDeleteBtn').show();
+    } else {
+        $('#batchDeleteBtn').hide();
+    }
+    
+    // 更新全选checkbox状态
+    if (totalCount > 0) {
+        if (checkedCount === totalCount) {
+            $('#selectAll').prop('indeterminate', false).prop('checked', true);
+        } else if (checkedCount > 0) {
+            $('#selectAll').prop('indeterminate', true).prop('checked', false);
+        } else {
+            $('#selectAll').prop('indeterminate', false).prop('checked', false);
+        }
+    }
+}
+
+function setupCheckboxEvents() {
+    // 全选/取消全选
+    $(document).on('change', '#selectAll', function() {
+        const isChecked = $(this).is(':checked');
+        $('.record-checkbox').prop('checked', isChecked);
+        updateBatchDeleteButton();
+    });
+    
+    // 单个复选框变化
+    $(document).on('change', '.record-checkbox', function() {
+        updateBatchDeleteButton();
+    });
+}
+
+// AJAX加载记录列表
+function loadRecords(page = 1, perPage = null) {
+    const formData = $('#filterForm').serialize();
+    let url = window.location.pathname + '?' + formData + (page > 1 ? '&page=' + page : '');
+    if (perPage) {
+        window.currentPerPage = perPage;
+        url += '&per_page=' + perPage;
+    } else if (window.currentPerPage) {
+        url += '&per_page=' + window.currentPerPage;
+    }
+    
+    // 显示加载状态
+    $('#filterStatus').show();
+    $('.auto-submit, #device_id').prop('disabled', true);
+    $('#recordsContainer').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i><p class="text-muted mt-2">正在加载...</p></div>');
+    
+    $.ajax({
+        url: url,
+        type: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        success: function(data) {
+            $('#recordsContainer').html(data);
+            // 重新设置复选框事件和更新按钮状态
+            updateBatchDeleteButton();
+        },
+        error: function() {
+            $('#recordsContainer').html('<div class="text-center py-5"><i class="fas fa-exclamation-triangle fa-2x text-danger"></i><p class="text-danger mt-2">加载失败，请重试</p></div>');
+        },
+        complete: function() {
+            // 隐藏加载状态
+            $('#filterStatus').hide();
+            $('.auto-submit, #device_id').prop('disabled', false);
+        }
+    });
+}
+
+// 分页函数
+function loadPage(page) {
+    loadRecords(page);
+}
+
+// 改变每页显示数量
+function changePerPage(perPage) {
+    loadRecords(1, perPage);
+}
+
+// 等待页面完全加载后执行
+window.addEventListener('load', function() {
+    if (typeof $ !== 'undefined') {
+        let deviceIdTimeout;
+        
+        // 初始化当前每页显示数量
+        window.currentPerPage = {{ filters.per_page or 20 }};
+        
+        // 设置复选框事件
+        setupCheckboxEvents();
+        
+        // 初始化批量删除按钮状态
+        updateBatchDeleteButton();
+        
+        // 下拉框和日期选择自动提交
+        $('.auto-submit').on('change', function() {
+            loadRecords();
+        });
+        
+        // 设备ID回车键提交
+        $('#device_id').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                loadRecords();
+            }
+        });
+        
+        // 设备ID输入3个字符后自动搜索
+        $('#device_id').on('input', function() {
+            const value = $(this).val();
+            clearTimeout(deviceIdTimeout);
+            
+            if (value === '' || value.length >= 3) {
+                deviceIdTimeout = setTimeout(function() {
+                    loadRecords();
+                }, 1000);
+            }
+        });
+        
+    }
+});
+</script>
+{% endblock %}

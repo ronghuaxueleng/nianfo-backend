@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}编辑经文{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book-open mr-2"></i>编辑经文
+        </h1>
+        <div class="btn-group">
+            <a href="{{ url_for('sutra.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>返回列表
+            </a>
+            <a href="{{ url_for('sutra.chapters', chanting_id=chanting.id) }}" class="btn btn-info">
+                <i class="fas fa-list mr-1"></i>管理章节
+            </a>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        编辑经文信息
+                        {% if chanting.is_built_in %}
+                            <span class="badge badge-info ml-2">内置</span>
+                        {% else %}
+                            <span class="badge badge-primary ml-2">自定义</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <form method="POST">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">经文名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   value="{{ chanting.title }}" placeholder="请输入经文名称">
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <strong>经文内容管理已迁移：</strong>
+                            <p class="mb-2 mt-2">经文的具体内容现在通过章节系统管理，请点击右上角的"管理章节"按钮来查看和编辑经文内容。</p>
+                            <a href="{{ url_for('sutra.chapters', chanting_id=chanting.id) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-list mr-1"></i>立即管理章节
+                            </a>
+                        </div>
+                        
+                        <!-- 显示创建信息 -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>创建者</label>
+                                    <div class="form-control-plaintext">
+                                        {% if chanting.user %}
+                                            <span class="badge badge-secondary">{{ chanting.user.nickname or chanting.user.username }}</span>
+                                        {% else %}
+                                            <span class="text-muted">系统</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>创建时间</label>
+                                    <div class="form-control-plaintext text-muted">
+                                        {{ chanting.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if chanting.updated_at %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>最后更新</label>
+                                    <div class="form-control-plaintext text-muted">
+                                        {{ chanting.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>章节管理：</strong>您可以点击右上角的"管理章节"按钮为这部经文添加或编辑章节，以便更好地组织经文内容。
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save mr-1"></i>保存更改
+                        </button>
+                        <a href="{{ url_for('sutra.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i>取消
+                        </a>
+                        <button type="button" class="btn btn-danger float-right" onclick="deleteSutra({{ chanting.id }})">
+                            <i class="fas fa-trash mr-1"></i>删除经文
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 表单验证
+    $('form').on('submit', function(e) {
+        const title = $('#title').val().trim();
+        
+        if (!title) {
+            e.preventDefault();
+            alert('请填写经文名称');
+            return false;
+        }
+        
+        return true;
+    });
+});
+
+// 删除经文
+function deleteSutra(id) {
+    if (!confirm('确定要删除这部经文吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/sutra/${id}/api-delete`,
+        method: 'POST',
+        success: function(response) {
+            alert('删除成功');
+            window.location.href = '{{ url_for("sutra.index") }}';
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+</script>
+{% endblock %}

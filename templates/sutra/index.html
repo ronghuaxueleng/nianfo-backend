@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}经文管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book-open mr-2"></i>经文管理
+        </h1>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">经文列表</h3>
+                    <div class="btn-group">
+                        <a href="{{ url_for('sutra.create') }}" class="btn btn-success">
+                            <i class="fas fa-plus mr-1"></i>添加经文
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选选项 -->
+                    <div class="d-flex flex-nowrap align-items-center mb-3" style="gap: 10px;">
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="sourceFilter">
+                                <option value="">全部来源</option>
+                                <option value="builtin" {% if current_source == 'builtin' %}selected{% endif %}>内置</option>
+                                <option value="custom" {% if current_source == 'custom' %}selected{% endif %}>自定义</option>
+                            </select>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <select class="form-control form-control-sm" id="userFilter">
+                                <option value="">全部用户</option>
+                                <option value="system" {% if current_user_filter == 'system' %}selected{% endif %}>系统内置</option>
+                                {% for user in users %}
+                                <option value="{{ user.username }}" {% if current_user_filter == user.username %}selected{% endif %}>{{ user.nickname or user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索经文名称或内容..." value="{{ current_search or '' }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchSutras()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="min-width: 80px;">
+                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="resetFilters()">
+                                <i class="fas fa-redo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="sutraTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th width="8%">ID</th>
+                                    <th width="25%">经文名称</th>
+                                    <th width="12%">来源</th>
+                                    <th width="15%">创建者</th>
+                                    <th width="20%">创建时间</th>
+                                    <th width="20%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chanting in chantings.items %}
+                                <tr data-id="{{ chanting.id }}">
+                                    <td>{{ chanting.id }}</td>
+                                    <td>
+                                        <strong>{{ chanting.title }}</strong>
+                                        {% if chanting.is_built_in %}
+                                        <span class="badge badge-info ml-1">内置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.is_built_in %}
+                                        <span class="text-info">内置</span>
+                                        {% else %}
+                                        <span class="text-primary">自定义</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if chanting.user %}
+                                        <span class="badge badge-secondary">{{ chanting.user.nickname or chanting.user.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">系统</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">
+                                        {{ chanting.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('sutra.chapters', chanting_id=chanting.id) }}" class="btn btn-primary btn-sm" title="管理章节">
+                                                <i class="fas fa-list"></i> 章节
+                                            </a>
+                                            <button class="btn btn-info btn-sm" onclick="viewSutra({{ chanting.id }})" title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <a href="{{ url_for('sutra.edit', chanting_id=chanting.id) }}" class="btn btn-warning btn-sm" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteSutra({{ chanting.id }})" title="删除">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if chantings.pages > 1 %}
+                    <nav aria-label="分页导航">
+                        <ul class="pagination justify-content-center">
+                            {% if chantings.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('sutra.index', page=chantings.prev_num, source=current_source, search=current_search, user=current_user_filter) }}">上一页</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in chantings.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != chantings.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('sutra.index', page=page_num, source=current_source, search=current_search, user=current_user_filter) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if chantings.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('sutra.index', page=chantings.next_num, source=current_source, search=current_search, user=current_user_filter) }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情模态框 -->
+<div class="modal fade" id="viewSutraModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewSutraTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>类型：</strong>
+                        <span class="badge badge-success">经文</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>来源：</strong>
+                        <span id="viewSutraSource"></span>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>创建者：</strong>
+                        <span id="viewSutraCreator"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>创建时间：</strong>
+                        <span id="viewSutraCreatedAt"></span>
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>经文内容已迁移到章节中管理</strong><br>
+                    <small class="text-muted">请点击下方"管理章节"按钮查看和编辑经文的具体内容</small>
+                </div>
+                <div class="form-group">
+                    <label><strong>章节信息：</strong></label>
+                    <div id="viewSutraChapters" class="border p-3" style="min-height: 60px;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> 正在加载章节信息...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" id="manageChaptersBtn" title="管理章节">
+                    <i class="fas fa-list mr-1"></i>管理章节
+                </a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 添加平滑加载效果
+    $('.dataTables_wrapper').addClass('loaded');
+});
+
+// 查看详情
+function viewSutra(id) {
+    $.ajax({
+        url: `/sutra/${id}/detail`,
+        method: 'GET',
+        success: function(data) {
+            $('#viewSutraTitle').text(data.title);
+            $('#viewSutraSource').html(data.is_built_in ? '<span class="text-info">内置</span>' : '<span class="text-primary">自定义</span>');
+            
+            // 显示创建者信息
+            if (data.user) {
+                const creatorName = data.user.nickname || data.user.username;
+                $('#viewSutraCreator').html('<span class="badge badge-secondary">' + creatorName + '</span>');
+            } else {
+                $('#viewSutraCreator').html('<span class="text-muted">系统</span>');
+            }
+            
+            // 显示创建时间
+            if (data.created_at) {
+                const createdAt = new Date(data.created_at).toLocaleString('zh-CN');
+                $('#viewSutraCreatedAt').text(createdAt);
+            } else {
+                $('#viewSutraCreatedAt').text('未知');
+            }
+            
+            // 设置管理章节链接
+            $('#manageChaptersBtn').attr('href', `/sutra/${id}/chapters`);
+            
+            // 加载章节信息
+            loadChapterInfo(id);
+            
+            $('#viewSutraModal').modal('show');
+        },
+        error: function(xhr) {
+            alert('获取详情失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+
+// 加载章节信息
+function loadChapterInfo(sutraId) {
+    $('#viewSutraChapters').html('<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> 正在加载章节信息...</div>');
+    
+    $.ajax({
+        url: `/sutra/${sutraId}/chapters-info`,
+        method: 'GET',
+        success: function(data) {
+            if (data.chapters && data.chapters.length > 0) {
+                let chaptersHtml = '<div class="chapter-list">';
+                data.chapters.forEach(function(chapter, index) {
+                    const badgeClass = index % 2 === 0 ? 'badge-primary' : 'badge-secondary';
+                    const contentPreview = chapter.content ? chapter.content.substring(0, 60) + (chapter.content.length > 60 ? '...' : '') : '';
+                    const pronunciationPreview = chapter.pronunciation ? chapter.pronunciation.substring(0, 40) + (chapter.pronunciation.length > 40 ? '...' : '') : '';
+                    const hasPronounciation = chapter.pronunciation && chapter.pronunciation.trim();
+                    
+                    chaptersHtml += `
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="badge ${badgeClass}">第 ${chapter.chapter_number} 章</span>
+                                <strong class="ml-2">${chapter.title}</strong>
+                                ${hasPronounciation ? '<i class="fas fa-volume-up ml-2 text-info" title="包含注音"></i>' : ''}
+                            </div>
+                            ${contentPreview ? `<div class="text-muted small ml-1"><strong>内容：</strong>${contentPreview}</div>` : ''}
+                            ${hasPronounciation ? `<div class="text-info small ml-1 mt-1"><strong>注音：</strong>${pronunciationPreview}</div>` : ''}
+                        </div>
+                    `;
+                });
+                chaptersHtml += '</div>';
+                chaptersHtml += `<div class="text-muted small mt-2 text-center">共 ${data.chapters.length} 章节 ${data.chapters.filter(c => c.pronunciation && c.pronunciation.trim()).length > 0 ? '| 包含注音' : ''}</div>`;
+                $('#viewSutraChapters').html(chaptersHtml);
+            } else {
+                $('#viewSutraChapters').html('<div class="text-muted text-center">暂无章节，点击"管理章节"开始添加</div>');
+            }
+        },
+        error: function(xhr) {
+            $('#viewSutraChapters').html('<div class="text-muted text-center">加载章节信息失败</div>');
+        }
+    });
+}
+
+// 删除
+function deleteSutra(id) {
+    if (!confirm('确定要删除这部经文吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/sutra/${id}/api-delete`,
+        method: 'POST',
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert('删除失败：' + (xhr.responseJSON ? xhr.responseJSON.message : '未知错误'));
+        }
+    });
+}
+
+// 搜索
+function searchSutras() {
+    const keyword = $('#searchInput').val();
+    const source = $('#sourceFilter').val();
+    const user = $('#userFilter').val();
+    
+    let url = '{{ url_for("sutra.index") }}?';
+    const params = [];
+    
+    if (keyword) params.push(`search=${encodeURIComponent(keyword)}`);
+    if (source) params.push(`source=${source}`);
+    if (user) params.push(`user=${user}`);
+    
+    window.location.href = url + params.join('&');
+}
+
+// 重置筛选
+function resetFilters() {
+    $('#searchInput').val('');
+    $('#sourceFilter').val('');
+    $('#userFilter').val('');
+    window.location.href = '{{ url_for("sutra.index") }}';
+}
+
+// 按Enter键搜索
+$('#searchInput').on('keypress', function(e) {
+    if (e.which === 13) {
+        searchSutras();
+    }
+});
+
+// 筛选器改变时自动搜索
+$('#sourceFilter, #userFilter').on('change', function() {
+    searchSutras();
+});
+</script>
+{% endblock %}

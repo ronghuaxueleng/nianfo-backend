@@ -1,0 +1,53 @@
+{
+  "database": {
+    "type": "mysql",
+    "sqlite": {
+      "path": "xiuxing.db"
+    },
+    "mysql": {
+      "host": "d3d3LnJvbmdodWF4dWVsZW5nLnNpdGU=",
+      "port": "MzMwNg==",
+      "user": "cm9vdA==",
+      "password": "WGlueWFuMTIwM0BA",
+      "password_encoded": true,
+      "database": "eGl1eGluZw==",
+      "charset": "utf8mb4"
+    },
+    "pool": {
+      "pool_size": 10,
+      "max_overflow": 20,
+      "pool_timeout": 30,
+      "pool_recycle": 3600,
+      "pool_pre_ping": true
+    }
+  },
+  "app": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "secret_key": "xiuxing-jilu-secret-key-production"
+  },
+  "development": {
+    "enabled": false,
+    "auto_reload": true,
+    "watch_directories": ["models", "routes", "templates", "static", "utils"],
+    "ignore_patterns": ["*.pyc", "*.log", "*.tmp", "__pycache__/*", "logs/*", "data/*"]
+  },
+  "upload": {
+    "max_file_size": 52428800,
+    "allowed_extensions": ["txt", "json", "csv", "xlsx"],
+    "upload_folder": "uploads"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/app.log"
+  },
+  "jwt": {
+    "secret_key": "xiuxing-jilu-jwt-secret-key-production",
+    "access_token_expires_days": 30
+  },
+  "cors": {
+    "origins": ["*"]
+  }
+}
