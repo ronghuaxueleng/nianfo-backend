@@ -168,6 +168,10 @@ def upload_data():
             'user_id': user_id
         }
         
+        # 执行替换式同步：先清理用户现有数据，再导入app数据
+        sync_logger.info(f"开始替换式同步，先清理用户 {current_user.username} 的现有数据")
+        _clear_user_data(user_id, data, sync_logger)
+        
         # 同步用户数据（只同步当前用户）
         if 'users' in data and overwrite_policy.get('users', True):
             sync_logger.info(f"开始同步用户数据，数量: {len(data['users'])}")
@@ -369,36 +373,16 @@ def sync_chantings(chantings_data, result, user_id, is_first_sync=False):
         sync_logger.error(f"同步佛号经文数据失败: {str(e)}")
 
 def sync_dedications(dedications_data, result, user_id, is_first_sync=False):
-    """同步回向数据"""
+    """同步回向数据（替换式同步，数据已被清理）"""
     try:
         synced_count = 0
-        updated_count = 0
+        skipped_count = 0
         
         for dedication_data in dedications_data:
             title = dedication_data.get('title')
             content = dedication_data.get('content')
             if not title or not content:
-                continue
-            
-            # 查找用户现有的回向文
-            existing = Dedication.query.filter_by(
-                title=title, 
-                content=content, 
-                user_id=user_id
-            ).first()
-            
-            if existing:
-                # 更新现有回向文的关联
-                if dedication_data.get('chanting_title') and dedication_data.get('chanting_content'):
-                    chanting = Chanting.query.filter_by(
-                        title=dedication_data['chanting_title'],
-                        content=dedication_data['chanting_content'],
-                        is_deleted=False
-                    ).first()
-                    if chanting:
-                        existing.chanting_id = chanting.id
-                existing.updated_at = parse_datetime(dedication_data.get('updated_at'))
-                updated_count += 1
+                skipped_count += 1
                 continue
             
             # 查找关联的佛号经文
@@ -412,6 +396,7 @@ def sync_dedications(dedications_data, result, user_id, is_first_sync=False):
                 if chanting:
                     chanting_id = chanting.id
             
+            # 直接创建新回向（无需检查存在性，因为已清理）
             new_dedication = Dedication(
                 title=title,
                 content=content,
@@ -425,16 +410,18 @@ def sync_dedications(dedications_data, result, user_id, is_first_sync=False):
         
         result['details']['dedications'] = {
             'synced': synced_count,
-            'updated': updated_count
+            'skipped': skipped_count
         }
+        sync_logger.info(f"回向数据同步完成: 新建 {synced_count}, 跳过 {skipped_count}")
     
     except Exception as e:
         sync_logger.error(f"同步回向数据失败: {str(e)}")
 
 def sync_chanting_records(records_data, result, user_id, is_first_sync=False):
-    """同步修行记录"""
+    """同步修行记录（替换式同步，数据已被清理）"""
     try:
         synced_count = 0
+        skipped_count = 0
         sync_logger.info(f"处理修行记录数据，用户ID: {user_id}")
         
         for i, record_data in enumerate(records_data):
@@ -442,6 +429,7 @@ def sync_chanting_records(records_data, result, user_id, is_first_sync=False):
             chanting_title = record_data.get('chanting_title')
             chanting_content = record_data.get('chanting_content')
             if not chanting_title or not chanting_content:
+                skipped_count += 1
                 continue
             
             # 查找对应的佛号经文
@@ -452,19 +440,12 @@ def sync_chanting_records(records_data, result, user_id, is_first_sync=False):
             ).first()
             if not chanting:
                 sync_logger.warning(f"找不到对应的佛号经文: {chanting_title}")
+                skipped_count += 1
                 continue
             
             sync_logger.info(f"找到佛号经文: {chanting_title} (ID: {chanting.id})")
             
-            # 检查用户的记录是否已存在
-            existing = ChantingRecord.query.filter_by(
-                chanting_id=chanting.id,
-                user_id=user_id
-            ).first()
-            if existing:
-                sync_logger.info(f"修行记录已存在，跳过: {chanting_title}")
-                continue
-            
+            # 直接创建新记录（无需检查存在性，因为已清理）
             sync_logger.info(f"创建新的修行记录: {chanting_title}")
             new_record = ChantingRecord(
                 chanting_id=chanting.id,
@@ -475,25 +456,32 @@ def sync_chanting_records(records_data, result, user_id, is_first_sync=False):
             db.session.add(new_record)
             synced_count += 1
         
-        result['details']['chanting_records'] = {'synced': synced_count}
-        sync_logger.info(f"修行记录同步完成: 新建 {synced_count}")
+        result['details']['chanting_records'] = {
+            'synced': synced_count,
+            'skipped': skipped_count
+        }
+        sync_logger.info(f"修行记录同步完成: 新建 {synced_count}, 跳过 {skipped_count}")
     
     except Exception as e:
         sync_logger.error(f"同步修行记录失败: {str(e)}")
 
 def sync_daily_stats(stats_data, result, user_id, is_first_sync=False):
-    """同步每日统计"""
+    """同步每日统计（替换式同步，数据已被清理）"""
     try:
         synced_count = 0
-        updated_count = 0
+        skipped_count = 0
+        sync_logger.info(f"开始处理每日统计数据，总数: {len(stats_data)}")
         
-        for stat_data in stats_data:
+        for i, stat_data in enumerate(stats_data):
+            sync_logger.info(f"处理第 {i+1}/{len(stats_data)} 条统计数据")
             chanting_title = stat_data.get('chanting_title')
             chanting_content = stat_data.get('chanting_content')
             stat_date = stat_data.get('date')
             count = stat_data.get('count', 0)
             
             if not chanting_title or not chanting_content or not stat_date:
+                sync_logger.warning(f"跳过无效数据: title={chanting_title}, content={'有' if chanting_content else '无'}, date={stat_date}")
+                skipped_count += 1
                 continue
             
             # 查找对应的佛号经文
@@ -503,47 +491,59 @@ def sync_daily_stats(stats_data, result, user_id, is_first_sync=False):
                 is_deleted=False
             ).first()
             if not chanting:
+                sync_logger.warning(f"跳过数据，找不到佛号经文: {chanting_title}")
+                skipped_count += 1
                 continue
             
-            # 解析日期
+            # 解析日期 - 支持多种格式
             try:
                 if isinstance(stat_date, str):
-                    stat_date_obj = datetime.strptime(stat_date, '%Y-%m-%d').date()
+                    # 支持多种日期格式
+                    date_formats = [
+                        '%Y-%m-%d',                    # 2025-08-30
+                        '%Y-%m-%dT%H:%M:%S.%f',        # 2025-08-30T00:00:00.000
+                        '%Y-%m-%dT%H:%M:%S',           # 2025-08-30T00:00:00
+                        '%Y-%m-%d %H:%M:%S'            # 2025-08-30 00:00:00
+                    ]
+                    
+                    stat_date_obj = None
+                    for fmt in date_formats:
+                        try:
+                            stat_date_obj = datetime.strptime(stat_date, fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                    
+                    if stat_date_obj is None:
+                        raise ValueError(f"无法解析日期格式: {stat_date}")
                 else:
                     stat_date_obj = stat_date
-            except:
+                    
+                sync_logger.info(f"解析日期成功: {stat_date} -> {stat_date_obj}")
+            except Exception as date_error:
+                sync_logger.warning(f"跳过数据，日期解析失败: {stat_date}, 错误: {date_error}")
+                skipped_count += 1
                 continue
             
-            # 检查用户的统计是否已存在
-            existing = DailyStats.query.filter_by(
+            # 直接创建新统计（无需检查存在性，因为已清理）
+            sync_logger.info(f"创建统计记录: 佛号ID={chanting.id}, 用户ID={user_id}, 日期={stat_date_obj}, 次数={count}")
+            new_stat = DailyStats(
                 chanting_id=chanting.id,
                 user_id=user_id,
-                date=stat_date_obj
-            ).first()
-            
-            if existing:
-                # 更新计数（取最大值）
-                if count > existing.count:
-                    existing.count = count
-                    existing.updated_at = parse_datetime(stat_data.get('updated_at'))
-                    updated_count += 1
-            else:
-                # 创建新统计
-                new_stat = DailyStats(
-                    chanting_id=chanting.id,
-                    user_id=user_id,
-                    count=count,
-                    date=stat_date_obj,
-                    created_at=parse_datetime(stat_data.get('created_at')),
-                    updated_at=parse_datetime(stat_data.get('updated_at'))
-                )
-                db.session.add(new_stat)
-                synced_count += 1
+                count=count,
+                date=stat_date_obj,
+                created_at=parse_datetime(stat_data.get('created_at')),
+                updated_at=parse_datetime(stat_data.get('updated_at'))
+            )
+            db.session.add(new_stat)
+            synced_count += 1
+            sync_logger.info(f"统计记录创建成功")
         
         result['details']['daily_stats'] = {
             'synced': synced_count,
-            'updated': updated_count
+            'skipped': skipped_count
         }
+        sync_logger.info(f"每日统计同步完成: 新建 {synced_count}, 跳过 {skipped_count}")
     
     except Exception as e:
         sync_logger.error(f"同步每日统计失败: {str(e)}")
@@ -626,6 +626,51 @@ def parse_datetime(datetime_str):
         return datetime_str
     except:
         return datetime.utcnow()
+
+def _clear_user_data(user_id, incoming_data, logger):
+    """清理用户现有数据（替换式同步的第一步）"""
+    try:
+        cleared_counts = {}
+        
+        # 只清理app端上传的数据类型
+        if 'dedications' in incoming_data:
+            # 清理回向数据
+            deleted_count = db.session.query(Dedication).filter_by(user_id=user_id).delete()
+            cleared_counts['dedications'] = deleted_count
+            logger.info(f"清理用户回向数据: {deleted_count} 条")
+        
+        if 'chanting_records' in incoming_data:
+            # 清理修行记录
+            deleted_count = db.session.query(ChantingRecord).filter_by(user_id=user_id).delete()
+            cleared_counts['chanting_records'] = deleted_count
+            logger.info(f"清理用户修行记录: {deleted_count} 条")
+        
+        if 'daily_stats' in incoming_data:
+            # 清理每日统计
+            deleted_count = db.session.query(DailyStats).filter_by(user_id=user_id).delete()
+            cleared_counts['daily_stats'] = deleted_count
+            logger.info(f"清理用户每日统计: {deleted_count} 条")
+        
+        if 'chantings' in incoming_data:
+            # 清理用户创建的佛号经文（不清理内置内容）
+            deleted_count = db.session.query(Chanting).filter(
+                Chanting.user_id == user_id,
+                Chanting.is_built_in == False
+            ).delete()
+            cleared_counts['chantings'] = deleted_count
+            logger.info(f"清理用户佛号经文: {deleted_count} 条")
+        
+        # 注意：不清理用户基本信息和回向模板（模板是全局共享的）
+        
+        # 提交清理操作
+        db.session.flush()
+        logger.info(f"用户数据清理完成: {cleared_counts}")
+        
+    except Exception as e:
+        logger.error(f"清理用户数据失败: {str(e)}")
+        # 清理失败时回滚并重新抛出异常，确保同步不会在不一致的状态下进行
+        db.session.rollback()
+        raise e
 
 @sync_bp.route('/download', methods=['POST'])
 def download_data():

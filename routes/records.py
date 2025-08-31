@@ -58,16 +58,18 @@ def index():
         # 获取包含关联数据的记录字典
         record_dict = record.to_dict_with_user_and_chanting()
         
-        # 今日念诵次数
+        # 今日念诵次数（按用户和佛号经文过滤）
         today_stat = DailyStats.query.filter_by(
             chanting_id=record.chanting_id,
+            user_id=record.user_id,
             date=today
         ).first()
         record_dict['today_count'] = today_stat.count if today_stat else 0
         
-        # 总念诵次数
+        # 总念诵次数（按用户和佛号经文过滤）
         total_count = db.session.query(func.sum(DailyStats.count)).filter_by(
-            chanting_id=record.chanting_id
+            chanting_id=record.chanting_id,
+            user_id=record.user_id
         ).scalar()
         record_dict['total_count'] = total_count or 0
         
@@ -99,21 +101,24 @@ def get_record(record_id):
     if not record:
         return jsonify({'error': '修行记录不存在'}), 404
     
-    # 获取今日统计
+    # 获取今日统计（按用户过滤）
     today = date.today()
     today_stat = DailyStats.query.filter_by(
         chanting_id=record.chanting_id,
+        user_id=record.user_id,
         date=today
     ).first()
     
-    # 获取总统计
+    # 获取总统计（按用户过滤）
     total_count = db.session.query(func.sum(DailyStats.count)).filter_by(
-        chanting_id=record.chanting_id
+        chanting_id=record.chanting_id,
+        user_id=record.user_id
     ).scalar()
     
-    # 获取修行天数
+    # 获取修行天数（按用户过滤）
     practice_days = db.session.query(func.count(DailyStats.id)).filter(
         DailyStats.chanting_id == record.chanting_id,
+        DailyStats.user_id == record.user_id,
         DailyStats.count > 0
     ).scalar()
     
