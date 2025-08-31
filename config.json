@@ -23,7 +23,7 @@
   },
   "app": {
     "host": "0.0.0.0",
-    "port": 5000,
+    "port": 5566,
     "debug": false,
     "secret_key": "xiuxing-jilu-secret-key-production"
   },

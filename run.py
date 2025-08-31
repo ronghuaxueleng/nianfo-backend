@@ -74,7 +74,7 @@ def main():
         
         # 启动应用
         host = app.config.get('HOST', '0.0.0.0')
-        port = app.config.get('PORT', 5000)
+        port = app.config.get('PORT', 5566)
         debug = app.config.get('DEBUG', False)
         
         print(f"\n🙏 修行记录后台管理系统")

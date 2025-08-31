@@ -34,7 +34,7 @@
   },
   "app": {
     "host": "0.0.0.0",
-    "port": 5000,
+    "port": 5566,
     "debug": false,
     "secret_key": "your-secret-key-here"
   },
@@ -161,7 +161,7 @@ export FLASK_ENV=production
 python run.py
 
 # 或使用Gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:create_app()
+gunicorn -w 4 -b 0.0.0.0:5566 app:create_app()
 ```
 
 ## 📊 配置管理API
@@ -270,10 +270,10 @@ export FLASK_ENV="production"
 
 ```bash
 # 获取连接池状态
-curl http://localhost:5000/system/db-pool
+curl http://localhost:5566/system/db-pool
 
 # 重置连接池
-curl -X POST http://localhost:5000/system/db-pool/reset
+curl -X POST http://localhost:5566/system/db-pool/reset
 ```
 
 ## 🔒 安全建议

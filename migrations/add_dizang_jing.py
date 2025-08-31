@@ -172,7 +172,7 @@ def add_dizang_jing():
         print(f"  2. 请在后台管理界面中编辑每个章节，添加完整的经文内容")
         print(f"  3. 建议从权威佛教网站获取完整经文和注音")
         print(f"  4. 经文ID: {chanting.id}，可通过以下URL访问章节管理:")
-        print(f"     http://localhost:5000/sutra/{chanting.id}/chapters")
+        print(f"     http://localhost:5566/sutra/{chanting.id}/chapters")
 
 def get_content_sources():
     """显示获取完整经文内容的建议来源"""

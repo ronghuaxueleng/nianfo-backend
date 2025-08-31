@@ -60,7 +60,7 @@ class Config:
         
         # 应用运行配置
         self.HOST = app_config.get('host', '0.0.0.0')
-        self.PORT = app_config.get('port', 5000)
+        self.PORT = app_config.get('port', 5566)
         self.DEBUG = app_config.get('debug', False)
         
         # 开发模式配置

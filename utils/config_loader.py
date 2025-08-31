@@ -73,7 +73,7 @@ class ConfigLoader:
             },
             "app": {
                 "host": "0.0.0.0",
-                "port": 5000,
+                "port": 5566,
                 "debug": True,
                 "secret_key": "dev-secret-key-change-in-production"
             },

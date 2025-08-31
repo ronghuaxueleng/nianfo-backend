@@ -87,7 +87,7 @@ export JWT_SECRET_KEY="your-jwt-secret-key"
 python app.py
 ```
 
-访问 http://localhost:5000
+访问 http://localhost:5566
 
 ### 4. 默认管理员账户
 
@@ -283,7 +283,7 @@ export JWT_SECRET_KEY="production-jwt-secret-key"
 2. 使用Gunicorn运行：
 ```bash
 pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+gunicorn -w 4 -b 0.0.0.0:5566 app:app
 ```
 
 3. 配置Nginx反向代理（可选）
@@ -317,9 +317,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 5566
 
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5566", "app:app"]
 ```
 
 ## Flutter应用集成

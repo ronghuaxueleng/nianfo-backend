@@ -29,11 +29,11 @@ def start_backend_server():
     # 检查端口是否被占用
     import socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('127.0.0.1', 5000))
+    result = sock.connect_ex(('127.0.0.1', 5566))
     sock.close()
     
     if result == 0:
-        print("端口5000已被占用，请先关闭其他服务或修改端口")
+        print("端口5566已被占用，请先关闭其他服务或修改端口")
         return False
     
     try:
@@ -41,7 +41,7 @@ def start_backend_server():
         subprocess.Popen([sys.executable, 'run.py'], 
                         stdout=subprocess.DEVNULL, 
                         stderr=subprocess.DEVNULL)
-        print("✓ 后台服务器已启动 (http://localhost:5000)")
+        print("✓ 后台服务器已启动 (http://localhost:5566)")
         return True
     except Exception as e:
         print(f"✗ 启动失败: {e}")
@@ -54,13 +54,13 @@ def open_management_page():
     
     try:
         # 打开浏览器到后台管理页面
-        management_url = "http://localhost:5000/sutra/37/chapters"
+        management_url = "http://localhost:5566/sutra/37/chapters"
         webbrowser.open(management_url)
         print(f"✓ 已打开管理页面: {management_url}")
         return True
     except Exception as e:
         print(f"✗ 打开页面失败: {e}")
-        print("请手动访问: http://localhost:5000/sutra/37/chapters")
+        print("请手动访问: http://localhost:5566/sutra/37/chapters")
         return False
 
 def show_instructions():
@@ -73,7 +73,7 @@ def show_instructions():
         "1. 后台服务已启动，管理页面已打开",
         "2. 在页面中点击需要编辑的品（第3-13品）",
         "3. 从合法来源（如CBETA）复制经文内容",
-        "4. 在编辑页面的"内容"字段中粘贴",
+        "4. 在编辑页面的“内容”字段中粘贴",
         "5. 注音字段可留空，系统会自动生成",
         "6. 点击保存完成该品的填充",
         "7. 重复以上步骤完成所有品的内容",

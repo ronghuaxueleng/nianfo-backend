@@ -149,4 +149,4 @@ if __name__ == '__main__':
         DedicationTemplate.create_built_in_templates()
         print("初始化内置数据完成")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5566)
