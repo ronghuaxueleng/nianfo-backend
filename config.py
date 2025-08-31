@@ -128,9 +128,6 @@ class ProductionConfig(Config):
         self.DEBUG = False
         self.ENV = 'production'
         
-        # 生产环境安全配置
-        self.CORS_ORIGINS = ['https://yourdomain.com']  # 生产环境限制CORS来源
-
 class TestingConfig(Config):
     """测试环境配置"""
     
