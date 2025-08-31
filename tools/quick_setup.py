@@ -29,7 +29,7 @@ def start_backend_server():
     # 检查端口是否被占用
     import socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('127.0.0.1', 5566))
+    result = sock.connect_ex(('0.0.0.0', 5566))
     sock.close()
     
     if result == 0:

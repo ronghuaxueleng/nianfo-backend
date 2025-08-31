@@ -78,11 +78,11 @@ def main():
         debug = app.config.get('DEBUG', False)
         
         print(f"\n🙏 修行记录后台管理系统")
-        print(f"🔗 访问地址: http://localhost:{port}")
+        print(f"🔗 访问地址: http://{host}:{port}")
         print(f"👤 管理员: admin / admin123")
-        print(f"📱 API接口: http://localhost:{port}/api")
-        print(f"💊 健康检查: http://localhost:{port}/system/health")
-        print(f"📊 连接池监控: http://localhost:{port}/system/db-pool")
+        print(f"📱 API接口: http://{host}:{port}/api")
+        print(f"💊 健康检查: http://{host}:{port}/system/health")
+        print(f"📊 连接池监控: http://{host}:{port}/system/db-pool")
         print(f"\n南无阿弥陀佛 🙏\n")
         
         app.run(host=host, port=port, debug=debug)
