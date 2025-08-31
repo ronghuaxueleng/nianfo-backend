@@ -194,10 +194,29 @@ def get_record_stats(record_id):
             'count': day_stat.count if day_stat else 0
         })
     
+    # Get chanting details
+    from models.chanting import Chanting
+    chanting = Chanting.query.get(record.chanting_id)
+    chanting_data = chanting.to_dict() if chanting else None
+    
+    # Get user details if available
+    user_data = None
+    if record.user_id:
+        from models.user import User
+        user = User.query.get(record.user_id)
+        if user:
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'nickname': user.nickname,
+                'avatar': user.avatar,
+                'avatar_type': user.avatar_type
+            }
+    
     return jsonify({
         'record_id': record_id,
-        'chanting': record.chanting.to_dict(),
-        'user': record.user.to_dict() if record.user else None,
+        'chanting': chanting_data,
+        'user': user_data,
         'stats': {
             'today_count': today_count,
             'total_count': total_count,

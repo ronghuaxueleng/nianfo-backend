@@ -627,18 +627,58 @@ def parse_datetime(datetime_str):
     except:
         return datetime.utcnow()
 
-@sync_bp.route('/download', methods=['GET'])
-@jwt_required()
+@sync_bp.route('/download', methods=['POST'])
 def download_data():
     """
     提供数据下载服务，将服务器数据发送给app
+    支持多种认证方式：JWT token 或 请求体中的用户名密码（与上传保持一致）
     """
     try:
-        # 获取当前登录用户ID
-        user_id = get_jwt_identity()
-        current_user = User.query.get(user_id)
+        sync_logger.info("=== 开始处理数据下载请求 ===")
+        
+        # 支持多种认证方式
+        current_user = None
+        user_id = None
+        
+        # 方式1：尝试JWT认证
+        try:
+            from flask_jwt_extended import verify_jwt_in_request
+            verify_jwt_in_request()
+            user_id = get_jwt_identity()
+            current_user = User.query.get(user_id)
+            sync_logger.info(f"JWT认证成功，用户ID: {user_id}")
+        except Exception as e:
+            # JWT认证失败，尝试其他方式
+            sync_logger.info(f"JWT认证失败: {str(e)}")
+            pass
+        
+        # 方式2：如果JWT失败，尝试请求体中的认证信息（与上传保持一致）
         if not current_user:
-            return jsonify({'status': 'error', 'message': 'user not found'}), 404
+            data = request.get_json() or {}
+            auth_info = data.get('auth', {})
+            username = auth_info.get('username')
+            password = auth_info.get('password')
+            
+            sync_logger.info(f"尝试请求体认证，用户名: {username}, 密码长度: {len(password) if password else 0}")
+            
+            if username and password:
+                from utils.crypto_utils import CryptoUtils
+                user = User.query.filter_by(username=username, is_deleted=False).first()
+                sync_logger.info(f"查找用户结果: {'找到用户' if user else '用户不存在'}")
+                
+                if user:
+                    password_valid = CryptoUtils.verify_password(password, user.password)
+                    sync_logger.info(f"密码验证结果: {'正确' if password_valid else '错误'}")
+                    
+                    if password_valid:
+                        current_user = user
+                        user_id = user.id
+                        sync_logger.info(f"请求体认证成功，用户ID: {user_id}, 用户名: {username}")
+        
+        # 如果所有认证方式都失败
+        if not current_user:
+            sync_logger.warning("所有认证方式都失败，返回认证失败")
+            return jsonify({'status': 'error', 'message': 'authentication failed'}), 401
         
         result = {
             'status': 'success',
@@ -668,16 +708,26 @@ def download_data():
                 )
             )
         ).all()
-        result['data']['chantings'] = [{
-            'title': chanting.title,
-            'content': chanting.content,
-            'pronunciation': chanting.pronunciation,
-            'type': chanting.type,
-            'is_built_in': chanting.is_built_in,
-            'username': chanting.user.username if chanting.user else None,
-            'created_at': chanting.created_at.isoformat() if chanting.created_at else None,
-            'updated_at': chanting.updated_at.isoformat() if chanting.updated_at else None
-        } for chanting in chantings]
+        result['data']['chantings'] = []
+        for chanting in chantings:
+            chanting_data = {
+                'title': chanting.title,
+                'content': chanting.content,
+                'pronunciation': chanting.pronunciation,
+                'type': chanting.type,
+                'is_built_in': chanting.is_built_in,
+                'created_at': chanting.created_at.isoformat() if chanting.created_at else None,
+                'updated_at': chanting.updated_at.isoformat() if chanting.updated_at else None
+            }
+            
+            # 获取用户信息
+            if chanting.user_id:
+                user = User.query.get(chanting.user_id)
+                chanting_data['username'] = user.username if user else None
+            else:
+                chanting_data['username'] = None
+                
+            result['data']['chantings'].append(chanting_data)
         
         # 获取用户的回向数据（包含关联的佛号经文信息）
         dedications = db.session.query(Dedication, Chanting).outerjoin(
